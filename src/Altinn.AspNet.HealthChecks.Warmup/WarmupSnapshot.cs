@@ -1,0 +1,22 @@
+namespace Altinn.AspNet.HealthChecks.Warmup;
+
+/// <summary>
+/// An immutable, self-consistent view of <see cref="WarmupState"/> at one point in time.
+/// </summary>
+/// <param name="Status">The warmup status.</param>
+/// <param name="CurrentPhase">The phase running when the snapshot was taken, if any.</param>
+/// <param name="FailedPhase">The phase that failed, set when <paramref name="Status"/> is <see cref="WarmupStatus.Failed"/>.</param>
+/// <param name="Exception">The exception that failed warmup, set when <paramref name="Status"/> is <see cref="WarmupStatus.Failed"/>.</param>
+public sealed record WarmupSnapshot(
+    WarmupStatus Status,
+    string? CurrentPhase,
+    string? FailedPhase,
+    Exception? Exception)
+{
+    /// <summary>The state of a warmup that has not started yet.</summary>
+    public static WarmupSnapshot Pending { get; } =
+        new(WarmupStatus.Pending, CurrentPhase: null, FailedPhase: null, Exception: null);
+
+    /// <summary>Whether warmup has completed successfully.</summary>
+    public bool IsWarmupComplete => Status == WarmupStatus.Healthy;
+}

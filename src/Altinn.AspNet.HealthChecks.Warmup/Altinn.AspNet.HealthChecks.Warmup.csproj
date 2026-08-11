@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Altinn.AspNet.HealthChecks.Warmup</RootNamespace>
+    <Description>Startup warmup building block for Altinn.AspNet.HealthChecks: run ordered warmup phases on startup and keep the readiness endpoint unhealthy until they complete.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- IHostedService / health check / DI / logging types ship through the shared framework. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- For HealthCheckTags.Warmup — the tag that routes the warmup gate onto readiness. -->
+    <ProjectReference Include="..\Altinn.AspNet.HealthChecks\Altinn.AspNet.HealthChecks.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Altinn.AspNet.HealthChecks.Tests" />
+  </ItemGroup>
+
+</Project>

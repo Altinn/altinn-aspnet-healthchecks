@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/SampleApi/SampleApi.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Altinn.AspNet.HealthChecks/Altinn.AspNet.HealthChecks.csproj" />
+    <Project Path="src/Altinn.AspNet.HealthChecks.OpenTelemetry/Altinn.AspNet.HealthChecks.OpenTelemetry.csproj" />
+    <Project Path="src/Altinn.AspNet.HealthChecks.Warmup/Altinn.AspNet.HealthChecks.Warmup.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Altinn.AspNet.HealthChecks.Tests/Altinn.AspNet.HealthChecks.Tests.csproj" />
+  </Folder>
+</Solution>

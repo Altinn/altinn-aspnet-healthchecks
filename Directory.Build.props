@@ -1,0 +1,32 @@
+<Project>
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Reproducible restore. Delete a project's packages.lock.json and restore to regenerate. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- NuGet advisory warnings should not fail the build. -->
+    <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <!-- Shared package metadata for all packable projects. -->
+  <PropertyGroup>
+    <Company>Digitaliseringsdirektoratet</Company>
+    <Authors>Digitaliseringsdirektoratet</Authors>
+    <PackageTags>digdir;altinn;healthchecks;aspnetcore;health</PackageTags>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/digdir/altinn-aspnet-healthchecks</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/digdir/altinn-aspnet-healthchecks</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Declarative, opinionated ASP.NET Core health check endpoint convention (/health, /health/deep, liveness, readiness, startup) with tag-based routing and HealthChecks-UI-compatible JSON — harmonizing the health surface across Altinn products. Zero dependencies; pair with the AspNetCore.HealthChecks.* packages for concrete checks. Extracted from Altinn Dialogporten.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MapHealthChecks / HealthCheckOptions ship only through the ASP.NET Core shared framework. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Altinn.AspNet.HealthChecks.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,26 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.props, $(MSBuildThisFileDirectory)..))" />
+
+  <!--
+    Shared defaults for all packable projects under src/. Adding a new companion package
+    (e.g. Altinn.AspNet.HealthChecks.Npgsql) needs only a folder with a csproj declaring its
+    TargetFrameworks and dependencies, a README.md, and an entry in the .slnx — AssemblyName
+    and PackageId default to the project file name, and the publish workflow packs every
+    packable project in the solution.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <!-- All packages share the root namespace, so consumers add a package without new usings. -->
+    <RootNamespace>Altinn.AspNet.HealthChecks</RootNamespace>
+    <!-- Default for local packs; CI overrides with -p:Version from the git tag. -->
+    <Version>0.1.0</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

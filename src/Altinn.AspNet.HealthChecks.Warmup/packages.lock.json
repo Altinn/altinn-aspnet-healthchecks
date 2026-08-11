@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "altinn.aspnet.healthchecks": {
+        "type": "Project"
+      }
+    },
+    "net8.0": {
+      "altinn.aspnet.healthchecks": {
+        "type": "Project"
+      }
+    },
+    "net9.0": {
+      "altinn.aspnet.healthchecks": {
+        "type": "Project"
+      }
+    }
+  }
+}
