@@ -100,7 +100,7 @@ public class WarmupStateTests
                         break;
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
 
         for (var i = 0; i < Transitions; i++)
         {

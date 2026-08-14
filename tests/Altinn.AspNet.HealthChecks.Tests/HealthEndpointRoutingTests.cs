@@ -32,10 +32,13 @@ public class HealthEndpointRoutingTests
         return app;
     }
 
-    private static async Task<HashSet<string>> GetEntryNamesAsync(HttpClient client, string path)
+    private static async Task<HashSet<string>> GetEntryNamesAsync(
+        HttpClient client,
+        string path,
+        CancellationToken cancellationToken)
     {
-        using var response = await client.GetAsync(path);
-        var json = await response.Content.ReadAsStringAsync();
+        using var response = await client.GetAsync(path, cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.GetProperty("entries").EnumerateObject().Select(p => p.Name).ToHashSet();
     }
@@ -43,11 +46,12 @@ public class HealthEndpointRoutingTests
     [Fact]
     public async Task Liveness_contains_only_self()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         await using var app = BuildApp();
-        await app.StartAsync();
+        await app.StartAsync(cancellationToken);
         var client = app.GetTestClient();
 
-        var entries = await GetEntryNamesAsync(client, "/health/liveness");
+        var entries = await GetEntryNamesAsync(client, "/health/liveness", cancellationToken);
 
         Assert.Equal(["self"], entries);
     }
@@ -55,11 +59,12 @@ public class HealthEndpointRoutingTests
     [Fact]
     public async Task Default_health_contains_dependencies_not_external()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         await using var app = BuildApp();
-        await app.StartAsync();
+        await app.StartAsync(cancellationToken);
         var client = app.GetTestClient();
 
-        var entries = await GetEntryNamesAsync(client, "/health");
+        var entries = await GetEntryNamesAsync(client, "/health", cancellationToken);
 
         Assert.Contains("database", entries);
         Assert.DoesNotContain("maskinporten", entries);
@@ -69,11 +74,12 @@ public class HealthEndpointRoutingTests
     [Fact]
     public async Task Deep_health_adds_external_checks()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         await using var app = BuildApp();
-        await app.StartAsync();
+        await app.StartAsync(cancellationToken);
         var client = app.GetTestClient();
 
-        var entries = await GetEntryNamesAsync(client, "/health/deep");
+        var entries = await GetEntryNamesAsync(client, "/health/deep", cancellationToken);
 
         Assert.Contains("database", entries);
         Assert.Contains("maskinporten", entries);
@@ -82,13 +88,14 @@ public class HealthEndpointRoutingTests
     [Fact]
     public async Task Readiness_gates_on_warmup_then_recovers()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var gate = new TaskCompletionSource();
         await using var app = BuildApp(services =>
             services.AddWarmup(o => o.AddPhase("gate", async (_, ct) => await gate.Task.WaitAsync(ct))));
-        await app.StartAsync();
+        await app.StartAsync(cancellationToken);
         var client = app.GetTestClient();
 
-        using (var pending = await client.GetAsync("/health/readiness"))
+        using (var pending = await client.GetAsync("/health/readiness", cancellationToken))
         {
             Assert.Equal(HttpStatusCode.ServiceUnavailable, pending.StatusCode);
         }
@@ -98,11 +105,11 @@ public class HealthEndpointRoutingTests
         HttpStatusCode status = HttpStatusCode.ServiceUnavailable;
         for (var i = 0; i < 50 && status != HttpStatusCode.OK; i++)
         {
-            using var response = await client.GetAsync("/health/readiness");
+            using var response = await client.GetAsync("/health/readiness", cancellationToken);
             status = response.StatusCode;
             if (status != HttpStatusCode.OK)
             {
-                await Task.Delay(50);
+                await Task.Delay(50, cancellationToken);
             }
         }
 
