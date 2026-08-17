@@ -189,9 +189,10 @@ create the policy long before you intend to release.
 The automation is fully wired but depends on settings that live outside this repo:
 
 - [ ] **Trusted Publishing policy on nuget.org**, as above.
-- [ ] **Secret `NUGET_USER`** — the nuget.org account *username* (profile name, **not** an email
-      address) that owns the trusted publishing policy. Not a credential, but kept in a secret per
-      NuGet's guidance so the account name is not advertised in logs.
+- [ ] **Variable `NUGET_USER`** — the nuget.org account *username* (profile name, **not** an email
+      address) that owns the trusted publishing policy. A variable rather than a secret: it is
+      public information and confers nothing by itself, and leaving it unmasked is what lets a
+      failed token exchange name the account it tried instead of reporting `'***'`.
 - [ ] **Repository setting: "Allow auto-merge"** — required for Renovate's `platformAutomerge` and
       for the release PR to merge itself.
 - [ ] **Branch protection on `main`** requiring the `build-and-test` check. Automerge waits for
