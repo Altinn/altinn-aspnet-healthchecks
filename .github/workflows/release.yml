@@ -57,7 +57,7 @@ jobs:
       - name: Mint a GitHub App installation token
         id: app-token
         if: env.APP_CLIENT_ID != ''
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
         with:
           client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
@@ -66,7 +66,7 @@ jobs:
           permission-pull-requests: write
           permission-issues: write
 
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         id: release
         with:
           # Without the App configured this falls back to GITHUB_TOKEN: the release PR is still
@@ -99,14 +99,14 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # release-please's tag is created after this workflow's commit, so check out the
           # tag explicitly when publishing a release it just cut.
           ref: ${{ needs.release-please.outputs.release_created == 'true' && format('v{0}', needs.release-please.outputs.version) || github.ref }}
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           # global.json pins the SDK used to build. The extra channels install the net8.0 and
           # net9.0 runtimes the multi-targeted test project needs.
@@ -163,7 +163,7 @@ jobs:
       # and each OIDC token may be exchanged exactly once, so it is acquired only once there is
       # something to publish.
       - name: Exchange OIDC token for a short-lived nuget.org API key
-        uses: NuGet/login@v1
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
         id: nuget-login
         with:
           user: ${{ secrets.NUGET_USER }}
