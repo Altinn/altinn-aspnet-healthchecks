@@ -163,7 +163,7 @@ On nuget.org → your username → **Trusted Publishing** → add a policy:
 
 | Field | Value |
 |---|---|
-| Repository Owner | `digdir` |
+| Repository Owner | `Altinn` |
 | Repository | `altinn-aspnet-healthchecks` |
 | Workflow File | `release.yml` — file name only, no `.github/workflows/` prefix |
 | Environment | *(leave empty — this repo uses no GitHub Actions environment)* |
@@ -224,10 +224,10 @@ alone; and the token it mints lives one hour and is revoked when the job ends, r
 sitting in the secret store indefinitely.
 
 **1. Register the App.** Organization → **Settings** → **Developer settings** → **GitHub Apps** →
-**New GitHub App**. Registering it under the `digdir` org (not a personal account) is the point of
+**New GitHub App**. Registering it under the `Altinn` org (not a personal account) is the point of
 the exercise.
 
-- **Name:** anything unused org-wide, e.g. `digdir-release-please`. This becomes the PR author.
+- **Name:** anything unused org-wide, e.g. `altinn-release-please`. This becomes the PR author.
 - **Homepage URL:** the repository URL is fine.
 - **Webhook:** **uncheck "Active"**. The App is only ever used to mint tokens; it receives nothing.
 - **Repository permissions:**
