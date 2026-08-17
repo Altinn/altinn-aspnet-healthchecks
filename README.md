@@ -30,7 +30,12 @@ See the [package README](src/Altinn.AspNet.HealthChecks/README.md) for usage.
 
 ```bash
 dotnet build -c Release
-dotnet test  -c Release
+dotnet test  -c Release   # runs on net8.0, net9.0 and net10.0
+
+# The test project multi-targets every shipped framework, so running the full matrix locally
+# needs the net8.0/net9.0 runtimes alongside the SDK pinned in global.json:
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 8.0 --runtime aspnetcore
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 9.0 --runtime aspnetcore
 
 # Run the sample and probe the endpoints
 ASPNETCORE_URLS=http://127.0.0.1:5199 dotnet run --project samples/SampleApi
@@ -47,15 +52,27 @@ Optional integrations ship as separate packages so the core stays dependency-fre
 (say `Altinn.AspNet.HealthChecks.Npgsql`):
 
 1. Create `src/Altinn.AspNet.HealthChecks.Npgsql/` with a csproj declaring only its
-   `Description` and `PackageReference`s, plus a `README.md`. Everything else
+   `Description` and `PackageReference`s (versionless — versions live in
+   `Directory.Packages.props`), plus a `README.md`. Everything else
    (target frameworks, root namespace, versioning, package metadata, README packing) comes
    from `src/Directory.Build.props` and the repo root `Directory.Build.props`; `PackageId`
    and `AssemblyName` default to the project file name.
-2. Add the project to `Altinn.AspNet.HealthChecks.slnx`.
-3. Done — the publish workflow packs every packable project in the solution.
+2. Add the project's package versions to `Directory.Packages.props`, and the project itself to
+   `Altinn.AspNet.HealthChecks.slnx`.
+3. Add any new shipped `PackageReference` to the `fix(deps)` rule in `renovate.json`, so its
+   updates cut a release (see [MAINTAINERS.md](MAINTAINERS.md)).
+4. Done — the publish workflow packs every packable project in the solution.
 
 ## Release
 
-Pushing a tag `v<semver>` (e.g. `v0.1.0`) builds, tests, packs, and pushes all packages +
-symbols to nuget.org (see `.github/workflows/publish-nuget.yml`). The tag drives the package
-version.
+Releases are automated. Conventional commit messages on `main` drive
+[release-please][rp], which maintains a release PR; merging it tags `v<semver>` and publishes
+all packages + symbols to nuget.org via [Trusted Publishing][tp] — no API keys are stored
+anywhere. `fix:`/`feat:` produce a release, `chore:` does not. Routine dependency updates from
+Renovate merge and release themselves without a human.
+
+See [MAINTAINERS.md](MAINTAINERS.md) for the full pipeline, the one-time repository setup it
+depends on, and how to intervene when the automation gets it wrong.
+
+[rp]: https://github.com/googleapis/release-please
+[tp]: https://learn.microsoft.com/nuget/nuget-org/trusted-publishing

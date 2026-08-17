@@ -1,0 +1,34 @@
+name: PR title
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+# Releases are derived from commit messages, and squash-merging uses the PR title as the commit
+# message. An unconventional title therefore does not fail — it silently produces no release,
+# which is the worst failure mode for an automated pipeline. This check makes it loud instead.
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            perf
+            docs
+            test
+            ci
+            build
+            refactor
+            style
+            chore
+            revert

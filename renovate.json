@@ -2,5 +2,71 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>Altinn/renovate-config"
+  ],
+  "semanticCommits": "enabled",
+  "dependencyDashboard": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 07:00 on the first day of the month"],
+    "automerge": true,
+    "commitMessageAction": "Refresh",
+    "semanticCommitType": "chore"
+  },
+  "packageRules": [
+    {
+      "description": "Non-major updates merge themselves. The inherited preset already holds them for 3 days (minimumReleaseAge) and CI covers every shipped TFM plus package API validation, so a human gate adds delay without adding signal.",
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Majors always get a human. They are where breaking changes and semver decisions live.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["needs-review"]
+    },
+    {
+      "description": "Dependencies that ship inside a package become a patch release: consumers get a raised dependency floor.",
+      "matchFileNames": ["src/**"],
+      "semanticCommitType": "fix",
+      "semanticCommitScope": "deps"
+    },
+    {
+      "description": "Test, sample and CI dependencies never reach a consumer, so they merge without cutting a release. `chore` is the type release-please ignores.",
+      "matchFileNames": ["tests/**", "samples/**", ".github/**", "global.json"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps"
+    },
+    {
+      "description": "Central Package Management puts every version in one file, which defeats path-based routing. Versions there are overwhelmingly test/sample dependencies; the one shipped dependency (OpenTelemetry) is routed to `fix` by the rule below. Release explicitly when in doubt — see MAINTAINERS.md.",
+      "matchFileNames": ["Directory.Packages.props"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps"
+    },
+    {
+      "description": "OpenTelemetry is a real dependency of Altinn.AspNet.HealthChecks.OpenTelemetry, so its updates do warrant a release. Ungrouped (groupName: null) so it never rides along in the shared non-major PR — that keeps `does this commit cut a release?` a property of a single PR rather than of whatever happened to be batched with it.",
+      "matchPackageNames": ["OpenTelemetry"],
+      "groupName": null,
+      "semanticCommitType": "fix",
+      "semanticCommitScope": "deps"
+    },
+    {
+      "description": "Microsoft.AspNetCore.TestHost is versioned in lockstep with the shared framework. The test project has one line per TFM; each must stay inside its own major band or the net8.0/net9.0 legs stop building.",
+      "matchPackageNames": ["Microsoft.AspNetCore.TestHost"],
+      "matchCurrentVersion": "/^8\\./",
+      "allowedVersions": "<9.0.0"
+    },
+    {
+      "matchPackageNames": ["Microsoft.AspNetCore.TestHost"],
+      "matchCurrentVersion": "/^9\\./",
+      "allowedVersions": "<10.0.0"
+    },
+    {
+      "description": "The SDK in global.json gates what CI and every contributor builds with. Worth a look even for a patch bump.",
+      "matchManagers": ["dotnet-sdk"],
+      "automerge": false,
+      "addLabels": ["needs-review"]
+    }
   ]
 }

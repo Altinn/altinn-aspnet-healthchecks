@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- Mirrors the TFMs the packages ship for, so every supported framework is actually
+         exercised and a dependency update cannot break net8.0/net9.0 behind a green CI. -->
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <!-- xunit.v3 test projects are self-runnable executables. -->
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
@@ -20,10 +22,10 @@
   <ItemGroup>
     <!-- Reference implementation of the HealthChecks UI JSON format; used only to verify
          that HealthCheckJsonResponseWriter stays byte-identical to it. -->
-    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.0" />
-    <PackageReference Include="xunit.v3" Version="3.2.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
 
   <ItemGroup>

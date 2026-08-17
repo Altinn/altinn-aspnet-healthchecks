@@ -5,6 +5,18 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Weekly canary: surfaces rot in the toolchain or transitive dependencies even in weeks
+  # where nothing is merged, so breakage is found before a release depends on it.
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test:
@@ -15,13 +27,26 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
+          # global.json pins the SDK used to build. The extra channels install the net8.0 and
+          # net9.0 runtimes the multi-targeted test project needs in order to actually execute
+          # on every framework the packages ship for.
+          dotnet-version: |
+            8.0.x
+            9.0.x
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore
+        # --locked-mode fails loudly if packages.lock.json is out of sync with the project files,
+        # rather than silently restoring something the lock file does not describe.
+        run: dotnet restore --locked-mode
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
       - name: Test
         run: dotnet test --no-build --configuration Release
+
+      - name: Pack
+        # Packing on every build runs package validation (API compatibility across TFMs, and
+        # against the released baseline once set) as part of CI rather than only at release time.
+        run: dotnet pack --no-build --configuration Release --output ${{ runner.temp }}/nupkgs
