@@ -11,10 +11,6 @@ namespace Altinn.AspNet.HealthChecks.Warmup;
 /// </summary>
 internal sealed partial class WarmupHostedService : BackgroundService
 {
-    // CancellationTokenSource.CancelAfter is backed by a timer whose maximum delay is
-    // uint.MaxValue - 2 milliseconds (~49.7 days); larger values make CancelAfter throw.
-    internal const int MaxTimeoutSeconds = (int)((uint.MaxValue - 2) / 1000);
-
     private readonly ILogger<WarmupHostedService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly WarmupState _warmupState;
@@ -39,25 +35,14 @@ internal sealed partial class WarmupHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Everything before the first await runs synchronously inside StartAsync, so a throw
-        // here surfaces as a host startup failure and the Enabled early-out completes before
-        // the host starts listening.
+        // Everything before the first await runs synchronously inside StartAsync, so the Enabled
+        // early-out completes before the host starts listening. Timeout validation lives in
+        // WarmupOptionsValidator (ValidateOnStart), not here.
         if (!_options.Enabled)
         {
             WarmupDisabled(_logger);
             _warmupState.MarkWarmupComplete();
             return;
-        }
-
-        if (_options.TimeoutSeconds is <= 0 or > MaxTimeoutSeconds)
-        {
-            // Fail host startup with a clear configuration error. Left unvalidated, a
-            // non-positive timeout would either fault the background task silently
-            // (readiness stuck Pending) or report a spurious instant timeout, and an
-            // over-large one would make CancelAfter throw inside the background task,
-            // permanently failing readiness with a misleading error.
-            throw new InvalidOperationException(
-                $"{nameof(WarmupOptions)}.{nameof(WarmupOptions.TimeoutSeconds)} must be between 1 and {MaxTimeoutSeconds}, but was {_options.TimeoutSeconds}.");
         }
 
         WarmupQueued(_logger);
@@ -71,8 +56,8 @@ internal sealed partial class WarmupHostedService : BackgroundService
 
     private async Task PerformWarmupAsync(CancellationToken cancellationToken)
     {
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(TimeSpan.FromSeconds(_options.TimeoutSeconds));
+        using var runCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        runCts.CancelAfter(TimeSpan.FromSeconds(_options.TimeoutSeconds));
 
         // Tracked locally so every failure path can attribute the failure to the phase that
         // was actually running (the shared WarmupState only exists for readers).
@@ -89,13 +74,13 @@ internal sealed partial class WarmupHostedService : BackgroundService
             foreach (var phase in _options.Phases)
             {
                 currentPhase = phase.Name;
-                await RunPhaseAsync(phase, services, timeoutCts.Token);
+                await RunPhaseAsync(phase, services, runCts.Token);
             }
 
             WarmupCompleted(_logger);
             _warmupState.MarkWarmupComplete();
         }
-        catch (OperationCanceledException ex) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (runCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
             WarmupTimedOut(_logger, _options.TimeoutSeconds, ex);
             _warmupState.MarkWarmupFailed(currentPhase ?? "timeout", ex);
@@ -112,17 +97,43 @@ internal sealed partial class WarmupHostedService : BackgroundService
         }
     }
 
-    private async Task RunPhaseAsync(IWarmupPhase phase, IServiceProvider services, CancellationToken cancellationToken)
+    private async Task RunPhaseAsync(IWarmupPhase phase, IServiceProvider services, CancellationToken runToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        runToken.ThrowIfCancellationRequested();
         _warmupState.MarkPhaseStarted(phase.Name);
         WarmupPhaseStarting(_logger, phase.Name);
 
+        // A per-phase budget is layered under the run budget, so a phase that overruns cannot
+        // consume the time a later phase needs. Like every timeout built on cancellation tokens,
+        // it bounds only work that observes the token.
+        // Zero stands for "no per-phase budget": the validator rejects anything below 1, so a
+        // real budget is always positive, and this keeps the value non-nullable in the catch.
+        var phaseTimeoutSeconds = phase.TimeoutSeconds ?? 0;
+        using var phaseCts = phaseTimeoutSeconds > 0
+            ? CancellationTokenSource.CreateLinkedTokenSource(runToken)
+            : null;
+        phaseCts?.CancelAfter(TimeSpan.FromSeconds(phaseTimeoutSeconds));
+        var phaseToken = phaseCts?.Token ?? runToken;
+
         try
         {
-            await phase.RunAsync(services, cancellationToken);
+            await phase.RunAsync(services, phaseToken);
         }
-        catch (Exception ex) when (phase.Optional && !(ex is OperationCanceledException && cancellationToken.IsCancellationRequested))
+        catch (OperationCanceledException ex) when (phaseCts is { IsCancellationRequested: true } && !runToken.IsCancellationRequested)
+        {
+            // The phase alone ran out of time. Optional phases still only log; required ones
+            // fail readiness, but as a phase timeout rather than a whole-run timeout.
+            if (phase.Optional)
+            {
+                WarmupOptionalPhaseTimedOut(_logger, phase.Name, phaseTimeoutSeconds, ex);
+                return;
+            }
+
+            WarmupPhaseTimedOut(_logger, phase.Name, phaseTimeoutSeconds, ex);
+            throw new TimeoutException(
+                $"Readiness warmup phase '{phase.Name}' timed out after {phaseTimeoutSeconds}s.", ex);
+        }
+        catch (Exception ex) when (phase.Optional && !(ex is OperationCanceledException && runToken.IsCancellationRequested))
         {
             // Optional phases must never fail readiness.
             WarmupOptionalPhaseFailed(_logger, phase.Name, ex);
@@ -158,4 +169,10 @@ internal sealed partial class WarmupHostedService : BackgroundService
 
     [LoggerMessage(EventId = 9, Level = LogLevel.Warning, Message = "Optional readiness warmup phase {WarmupPhase} failed; readiness will not be failed by this phase.")]
     private static partial void WarmupOptionalPhaseFailed(ILogger logger, string warmupPhase, Exception exception);
+
+    [LoggerMessage(EventId = 10, Level = LogLevel.Error, Message = "Readiness warmup phase {WarmupPhase} timed out after {TimeoutSeconds}s.")]
+    private static partial void WarmupPhaseTimedOut(ILogger logger, string warmupPhase, int timeoutSeconds, Exception exception);
+
+    [LoggerMessage(EventId = 11, Level = LogLevel.Warning, Message = "Optional readiness warmup phase {WarmupPhase} timed out after {TimeoutSeconds}s; readiness will not be failed by this phase.")]
+    private static partial void WarmupOptionalPhaseTimedOut(ILogger logger, string warmupPhase, int timeoutSeconds, Exception exception);
 }

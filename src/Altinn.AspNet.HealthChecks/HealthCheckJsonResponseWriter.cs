@@ -14,8 +14,8 @@ namespace Altinn.AspNet.HealthChecks;
 /// consumed by the HealthChecks UI dashboard and by anything else expecting that shape.
 /// </summary>
 /// <remarks>
-/// Used by <see cref="HealthCheckEndpointRouteBuilderExtensions.MapAltinnHealthChecks"/> for all
-/// mapped endpoints. Reuse it for extra endpoints you map yourself:
+/// Used by <c>MapAltinnHealthChecks</c> for all mapped endpoints. Reuse it for extra endpoints you
+/// map yourself:
 /// <code>
 /// app.MapHealthChecks("/custom", new HealthCheckOptions
 /// {
@@ -29,16 +29,37 @@ public static class HealthCheckJsonResponseWriter
 
     /// <summary>
     /// Serializes <paramref name="report"/> to the response body as HealthChecks UI JSON and
-    /// sets the content type to <c>application/json</c>.
+    /// sets the content type to <c>application/json</c>. Includes exception details.
     /// </summary>
-    public static Task WriteResponse(HttpContext httpContext, HealthReport report)
+    public static Task WriteResponse(HttpContext httpContext, HealthReport report) =>
+        WriteResponse(httpContext, report, includeExceptionDetails: true);
+
+    /// <summary>
+    /// Returns a response writer at the given detail level, for use as
+    /// <see cref="Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions.ResponseWriter"/>.
+    /// </summary>
+    /// <param name="includeExceptionDetails">
+    /// When <see langword="false"/>, the <c>exception</c> field is omitted and a missing
+    /// description no longer falls back to the exception message. Exception messages routinely
+    /// carry connection strings and hostnames, so suppress them wherever the endpoint is reachable
+    /// by anything untrusted.
+    /// </param>
+    public static Func<HttpContext, HealthReport, Task> Create(bool includeExceptionDetails) =>
+        includeExceptionDetails
+            ? WriteResponse
+            : static (context, report) => WriteResponse(context, report, includeExceptionDetails: false);
+
+    private static Task WriteResponse(HttpContext httpContext, HealthReport report, bool includeExceptionDetails)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(report);
 
         httpContext.Response.ContentType = "application/json";
         return JsonSerializer.SerializeAsync(
-            httpContext.Response.Body, JsonReport.CreateFrom(report), SerializerOptions, httpContext.RequestAborted);
+            httpContext.Response.Body,
+            JsonReport.CreateFrom(report, includeExceptionDetails),
+            SerializerOptions,
+            httpContext.RequestAborted);
     }
 
     private static JsonSerializerOptions CreateSerializerOptions()
@@ -65,7 +86,7 @@ public static class HealthCheckJsonResponseWriter
 
         public Dictionary<string, JsonReportEntry> Entries { get; init; } = [];
 
-        public static JsonReport CreateFrom(HealthReport report)
+        public static JsonReport CreateFrom(HealthReport report, bool includeExceptionDetails)
         {
             var jsonReport = new JsonReport
             {
@@ -75,14 +96,25 @@ public static class HealthCheckJsonResponseWriter
 
             foreach (var (name, entry) in report.Entries)
             {
+                // The format surfaces the exception message, and falls back to it as the
+                // description when no description was provided.
+                //
+                // Suppressing details means dropping the description too whenever an exception is
+                // present, not just the exception field: when a check *throws*, the health check
+                // service builds the entry with the exception message as its description, so the
+                // secret is already sitting in Description before this writer sees it. A
+                // description is only safe to publish when no exception accompanies it.
+                var exception = includeExceptionDetails ? entry.Exception?.Message : null;
+                var description = includeExceptionDetails || entry.Exception is null
+                    ? entry.Description ?? exception
+                    : null;
+
                 jsonReport.Entries.Add(name, new JsonReportEntry
                 {
                     Data = entry.Data,
-                    // The format surfaces the exception message, and falls back to it as the
-                    // description when no description was provided.
-                    Description = entry.Description ?? entry.Exception?.Message,
+                    Description = description,
                     Duration = entry.Duration,
-                    Exception = entry.Exception?.Message,
+                    Exception = exception,
                     Status = entry.Status,
                     Tags = entry.Tags,
                 });

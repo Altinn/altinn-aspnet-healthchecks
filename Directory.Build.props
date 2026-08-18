@@ -22,8 +22,8 @@
     <Authors>Digitaliseringsdirektoratet</Authors>
     <PackageTags>digdir;altinn;healthchecks;aspnetcore;health</PackageTags>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/digdir/altinn-aspnet-healthchecks</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/digdir/altinn-aspnet-healthchecks</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Altinn/altinn-aspnet-healthchecks</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Altinn/altinn-aspnet-healthchecks</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>

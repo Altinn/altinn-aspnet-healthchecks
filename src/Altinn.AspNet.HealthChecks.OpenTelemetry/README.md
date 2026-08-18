@@ -1,7 +1,6 @@
 # Altinn.AspNet.HealthChecks.OpenTelemetry
 
-> **Experimental — pre-1.0.0.** This package is unreleased and under active development.
-> APIs may change without notice before the 1.0.0 release.
+> **Experimental — pre-1.0.0.** APIs may change without notice before the 1.0.0 release.
 
 OpenTelemetry companion package to
 [`Altinn.AspNet.HealthChecks`](https://www.nuget.org/packages/Altinn.AspNet.HealthChecks):
@@ -23,6 +22,27 @@ Without arguments, the filter suppresses the five endpoints mapped by
 ```csharp
 tracerProviderBuilder.AddHealthCheckActivityFilter("/internal/health");
 ```
+
+### If you customise the endpoint paths, share the options object
+
+The defaults above are hardcoded, so moving a path leaves the filter matching the old one —
+silently, with no error and no clue beyond a growing trace bill. Pass the same
+`HealthCheckEndpointOptions` instance to both, and the two cannot disagree:
+
+```csharp
+var healthEndpoints = new HealthCheckEndpointOptions();
+healthEndpoints.Deep.Path = "/internal/health/deep";
+healthEndpoints.Startup.Disable();
+
+builder.Services.AddOpenTelemetry().WithTracing(t => t
+    .AddHealthCheckActivityFilter(healthEndpoints)   // suppresses exactly what gets mapped
+    .AddOtlpExporter());
+
+app.MapAltinnHealthChecks(healthEndpoints);
+```
+
+Disabled endpoints are not suppressed: nothing is mapped there, so a route ending that way
+belongs to your app and its spans are kept.
 
 Matching is by case-insensitive route **suffix**, so the endpoints stay suppressed when the
 app is mounted under a path base. The flip side: any route ending in a suffix is suppressed

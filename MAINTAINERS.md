@@ -71,14 +71,33 @@ Everything else is automated; these three things are not, by design.
 build — so validation is a pull-request gate, not just a release-time check. It verifies that the
 `net8.0`, `net9.0` and `net10.0` assemblies inside a package stay API-compatible with each other.
 
-**After the first release ships, set the baseline.** In `src/Directory.Build.props`, uncomment:
+**Setting the baseline is a release-boundary operation.** In `src/Directory.Build.props`:
 
 ```xml
-<PackageValidationBaselineVersion>0.1.0</PackageValidationBaselineVersion>
+<PackageValidationBaselineVersion>0.2.0</PackageValidationBaselineVersion>
 ```
 
 From then on the build additionally diffs against that published package and **fails on any
-breaking change**. Keep it pointed at the most recent released version.
+breaking change**.
+
+Two rules keep this from tying itself in knots:
+
+1. **Set it to the version that just shipped, immediately after shipping it** — never before.
+   Enabling it *during* a release that contains breaking changes is circular: the baseline is
+   still the older version the release deliberately breaks from, so the build fails on the very
+   change you intended.
+2. **A release that contains intentional breaks ships with the baseline pointing at the previous
+   version, or unset.** Pre-1.0, that means each breaking release is "free" and the baseline is
+   re-pointed afterwards.
+
+**Adding a new package while a baseline is set** is the other trap: a brand-new project inherits
+the repo-wide baseline and `dotnet pack` fails trying to download a version of itself that never
+existed. Clear it in that project's csproj until it has shipped once:
+
+```xml
+<!-- Remove after this package's first release. -->
+<PackageValidationBaselineVersion></PackageValidationBaselineVersion>
+```
 
 When it fails, you have exactly two honest options:
 
@@ -163,7 +182,7 @@ On nuget.org → your username → **Trusted Publishing** → add a policy:
 
 | Field | Value |
 |---|---|
-| Repository Owner | `digdir` |
+| Repository Owner | `Altinn` |
 | Repository | `altinn-aspnet-healthchecks` |
 | Workflow File | `release.yml` — file name only, no `.github/workflows/` prefix |
 | Environment | *(leave empty — this repo uses no GitHub Actions environment)* |
@@ -189,9 +208,10 @@ create the policy long before you intend to release.
 The automation is fully wired but depends on settings that live outside this repo:
 
 - [ ] **Trusted Publishing policy on nuget.org**, as above.
-- [ ] **Secret `NUGET_USER`** — the nuget.org account *username* (profile name, **not** an email
-      address) that owns the trusted publishing policy. Not a credential, but kept in a secret per
-      NuGet's guidance so the account name is not advertised in logs.
+- [ ] **Variable `NUGET_USER`** — the nuget.org account *username* (profile name, **not** an email
+      address) that owns the trusted publishing policy. A variable rather than a secret: it is
+      public information and confers nothing by itself, and leaving it unmasked is what lets a
+      failed token exchange name the account it tried instead of reporting `'***'`.
 - [ ] **Repository setting: "Allow auto-merge"** — required for Renovate's `platformAutomerge` and
       for the release PR to merge itself.
 - [ ] **Branch protection on `main`** requiring the `build-and-test` check. Automerge waits for
@@ -224,10 +244,10 @@ alone; and the token it mints lives one hour and is revoked when the job ends, r
 sitting in the secret store indefinitely.
 
 **1. Register the App.** Organization → **Settings** → **Developer settings** → **GitHub Apps** →
-**New GitHub App**. Registering it under the `digdir` org (not a personal account) is the point of
+**New GitHub App**. Registering it under the `Altinn` org (not a personal account) is the point of
 the exercise.
 
-- **Name:** anything unused org-wide, e.g. `digdir-release-please`. This becomes the PR author.
+- **Name:** anything unused org-wide, e.g. `altinn-release-please`. This becomes the PR author.
 - **Homepage URL:** the repository URL is fine.
 - **Webhook:** **uncheck "Active"**. The App is only ever used to mint tokens; it receives nothing.
 - **Repository permissions:**

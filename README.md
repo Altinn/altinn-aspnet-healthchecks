@@ -1,13 +1,14 @@
 # altinn-aspnet-healthchecks
 
-> **Experimental — pre-1.0.0.** This project is unreleased and under active development.
-> APIs, conventions, and package layout may change without notice before the 1.0.0 release.
+> **Experimental — pre-1.0.0.** APIs, conventions, and package layout may change without
+> notice before the 1.0.0 release.
 
 Reusable ASP.NET Core health check endpoints for Digdir/Altinn products, extracted and
 generalized from [Dialogporten](https://github.com/altinn/dialogporten): an opinionated
 endpoint/tag convention on top of ASP.NET Core health checks, harmonizing the health surface
 across Altinn products. Ships as the zero-dependency NuGet package
 **`Altinn.AspNet.HealthChecks`**, plus optional companion packages
+**`Altinn.AspNet.HealthChecks.Probes`** (config-driven outbound HTTP probes),
 **`Altinn.AspNet.HealthChecks.Warmup`** (readiness-gating startup warmup) and
 **`Altinn.AspNet.HealthChecks.OpenTelemetry`** (suppress health check trace spans).
 Concrete checks come from the
@@ -21,9 +22,10 @@ See the [package README](src/Altinn.AspNet.HealthChecks/README.md) for usage.
 | Path | What |
 |------|------|
 | `src/Altinn.AspNet.HealthChecks` | The core convention (multi-targets net8.0/net9.0/net10.0). Zero NuGet dependencies. |
+| `src/Altinn.AspNet.HealthChecks.Probes` | Companion package: config-driven outbound HTTP probes on the deep endpoint. |
 | `src/Altinn.AspNet.HealthChecks.Warmup` | Companion package: startup warmup phases gating the readiness endpoint. |
 | `src/Altinn.AspNet.HealthChecks.OpenTelemetry` | Companion package: OTEL span processor that suppresses health check trace spans. |
-| `samples/SampleApi` | Minimal API demonstrating all five endpoints + opt-in warmup. |
+| `samples/SampleApi` | Minimal API demonstrating all five endpoints, outbound probes and opt-in warmup. |
 | `tests/Altinn.AspNet.HealthChecks.Tests` | xUnit unit + TestServer integration tests. |
 
 ## Develop

@@ -5,6 +5,7 @@
   <Folder Name="/src/">
     <Project Path="src/Altinn.AspNet.HealthChecks/Altinn.AspNet.HealthChecks.csproj" />
     <Project Path="src/Altinn.AspNet.HealthChecks.OpenTelemetry/Altinn.AspNet.HealthChecks.OpenTelemetry.csproj" />
+    <Project Path="src/Altinn.AspNet.HealthChecks.Probes/Altinn.AspNet.HealthChecks.Probes.csproj" />
     <Project Path="src/Altinn.AspNet.HealthChecks.Warmup/Altinn.AspNet.HealthChecks.Warmup.csproj" />
   </Folder>
   <Folder Name="/tests/">
