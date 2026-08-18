@@ -8,4 +8,9 @@
     <PackageReference Include="OpenTelemetry" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- For HealthCheckEndpointOptions — lets the filter suppress exactly the mapped endpoints. -->
+    <ProjectReference Include="..\Altinn.AspNet.HealthChecks\Altinn.AspNet.HealthChecks.csproj" />
+  </ItemGroup>
+
 </Project>

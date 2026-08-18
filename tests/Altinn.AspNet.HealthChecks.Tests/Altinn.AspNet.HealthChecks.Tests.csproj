@@ -31,6 +31,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Altinn.AspNet.HealthChecks\Altinn.AspNet.HealthChecks.csproj" />
     <ProjectReference Include="..\..\src\Altinn.AspNet.HealthChecks.OpenTelemetry\Altinn.AspNet.HealthChecks.OpenTelemetry.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.AspNet.HealthChecks.Probes\Altinn.AspNet.HealthChecks.Probes.csproj" />
     <ProjectReference Include="..\..\src\Altinn.AspNet.HealthChecks.Warmup\Altinn.AspNet.HealthChecks.Warmup.csproj" />
   </ItemGroup>
 

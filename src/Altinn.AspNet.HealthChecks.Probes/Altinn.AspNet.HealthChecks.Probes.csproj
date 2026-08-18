@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Altinn.AspNet.HealthChecks.Probes</RootNamespace>
+    <Description>Config-driven outbound HTTP probes for Altinn.AspNet.HealthChecks: probe a list of upstream services — absolute or resolved relative to a per-environment base URI — as hard or soft dependencies on the /health/deep endpoint. Companion package to Altinn.AspNet.HealthChecks.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.Uris" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- For HealthCheckTags.External — the tag that routes probes onto the deep endpoint. -->
+    <ProjectReference Include="..\Altinn.AspNet.HealthChecks\Altinn.AspNet.HealthChecks.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Altinn.AspNet.HealthChecks.Tests" />
+  </ItemGroup>
+
+</Project>

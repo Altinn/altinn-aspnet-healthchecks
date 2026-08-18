@@ -7,7 +7,7 @@ namespace Altinn.AspNet.HealthChecks;
 /// <summary>
 /// An OpenTelemetry span processor that drops ASP.NET Core server spans for health check
 /// routes, so probe traffic does not flood traces. Register it with
-/// <see cref="HealthCheckTracerProviderBuilderExtensions.AddHealthCheckActivityFilter"/>.
+/// <c>AddHealthCheckActivityFilter</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -29,7 +29,10 @@ public sealed class HealthCheckActivityFilter : BaseProcessor<Activity>
     // The ASP.NET Core ActivitySource name; server request spans originate here.
     private const string AspNetCoreSourcePrefix = "Microsoft.AspNetCore";
 
-    private readonly string[] _suppressedRouteSuffixes;
+    // Exactly one of these is set. The options form stays deferred rather than snapshotting
+    // paths, because the tracer provider is normally built before MapAltinnHealthChecks runs.
+    private readonly string[]? _explicitSuffixes;
+    private readonly Lazy<string[]>? _endpointSuffixes;
 
     /// <summary>
     /// Creates the filter. When no suffixes are supplied, the defaults cover the five endpoints
@@ -45,9 +48,35 @@ public sealed class HealthCheckActivityFilter : BaseProcessor<Activity>
     /// </remarks>
     public HealthCheckActivityFilter(params string[] suppressedRouteSuffixes)
     {
-        _suppressedRouteSuffixes = suppressedRouteSuffixes is { Length: > 0 }
+        _explicitSuffixes = suppressedRouteSuffixes is { Length: > 0 }
             ? suppressedRouteSuffixes
             : ["/health", "/health/liveness", "/health/readiness", "/health/startup", "/health/deep"];
+    }
+
+    /// <summary>
+    /// Creates the filter from the same <see cref="HealthCheckEndpointOptions"/> instance passed
+    /// to <c>MapAltinnHealthChecks</c>, suppressing exactly the endpoints that are mapped.
+    /// </summary>
+    /// <remarks>
+    /// Prefer this over the default suffixes whenever paths are customised. With hardcoded
+    /// defaults, moving <c>Deep.Path</c> silently stops suppressing that route — no error, just
+    /// probe spans quietly flooding your traces.
+    /// <para>
+    /// Paths are read on the first span rather than here, because the tracer provider is normally
+    /// built during service registration, before <c>MapAltinnHealthChecks</c> runs — snapshotting
+    /// at construction would reintroduce the same drift for anything configured in between.
+    /// Mutating paths after the app is serving traffic is not supported.
+    /// </para>
+    /// </remarks>
+    public HealthCheckActivityFilter(HealthCheckEndpointOptions endpointOptions)
+    {
+        ArgumentNullException.ThrowIfNull(endpointOptions);
+
+        _endpointSuffixes = new Lazy<string[]>(() =>
+            [.. endpointOptions.All
+                .Select(endpoint => endpoint.Path)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(path => path!)]);
     }
 
     /// <inheritdoc />
@@ -83,7 +112,7 @@ public sealed class HealthCheckActivityFilter : BaseProcessor<Activity>
             return false;
         }
 
-        foreach (var suffix in _suppressedRouteSuffixes)
+        foreach (var suffix in _explicitSuffixes ?? _endpointSuffixes!.Value)
         {
             if (route.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
             {
@@ -110,5 +139,19 @@ public static class HealthCheckTracerProviderBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         return builder.AddProcessor(new HealthCheckActivityFilter(suppressedRouteSuffixes));
+    }
+
+    /// <summary>
+    /// Adds a <see cref="HealthCheckActivityFilter"/> that suppresses trace spans for exactly the
+    /// endpoints <paramref name="endpointOptions"/> maps. Pass the same instance to
+    /// <c>MapAltinnHealthChecks</c> so customised paths cannot drift out of sync. Call this before
+    /// registering exporters — only exporters added after it see the suppression.
+    /// </summary>
+    public static TracerProviderBuilder AddHealthCheckActivityFilter(
+        this TracerProviderBuilder builder,
+        HealthCheckEndpointOptions endpointOptions)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.AddProcessor(new HealthCheckActivityFilter(endpointOptions));
     }
 }

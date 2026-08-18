@@ -45,8 +45,8 @@
       "semanticCommitScope": "deps"
     },
     {
-      "description": "OpenTelemetry is a real dependency of Altinn.AspNet.HealthChecks.OpenTelemetry, so its updates do warrant a release. Ungrouped (groupName: null) so it never rides along in the shared non-major PR — that keeps `does this commit cut a release?` a property of a single PR rather than of whatever happened to be batched with it.",
-      "matchPackageNames": ["OpenTelemetry"],
+      "description": "Dependencies that ship inside a package: OpenTelemetry (Altinn.AspNet.HealthChecks.OpenTelemetry) and AspNetCore.HealthChecks.Uris (Altinn.AspNet.HealthChecks.Probes). Their updates warrant a release. Ungrouped (groupName: null) so they never ride along in the shared non-major PR — that keeps `does this commit cut a release?` a property of a single PR rather than of whatever happened to be batched with it. Add any new src/** PackageReference here.",
+      "matchPackageNames": ["OpenTelemetry", "AspNetCore.HealthChecks.Uris"],
       "groupName": null,
       "semanticCommitType": "fix",
       "semanticCommitScope": "deps"

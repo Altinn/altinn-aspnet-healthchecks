@@ -11,40 +11,71 @@ namespace Altinn.AspNet.HealthChecks;
 public static class HealthCheckEndpointRouteBuilderExtensions
 {
     /// <summary>
-    /// Maps the five health endpoints (liveness, readiness, startup, health, deep), each
-    /// filtering registered checks by tag. All endpoints emit the standard HealthChecks UI
-    /// JSON via <see cref="HealthCheckJsonResponseWriter"/>, so the deep endpoint is
-    /// structurally identical to the Dialogporten reference deployment.
+    /// Maps the health endpoints (liveness, readiness, startup, health, deep), each filtering the
+    /// registered checks by tag. Endpoints whose <see cref="HealthEndpoint.Path"/> is
+    /// <see langword="null"/> are skipped.
     /// </summary>
     /// <param name="endpoints">The endpoint route builder (e.g. the <c>WebApplication</c>).</param>
-    /// <param name="configure">Optional callback to override the default route paths.</param>
+    /// <param name="configure">Optional callback to customise paths, route conventions and response detail.</param>
     public static IEndpointRouteBuilder MapAltinnHealthChecks(
         this IEndpointRouteBuilder endpoints,
         Action<HealthCheckEndpointOptions>? configure = null)
     {
-        ArgumentNullException.ThrowIfNull(endpoints);
-
         var options = new HealthCheckEndpointOptions();
         configure?.Invoke(options);
+        return endpoints.MapAltinnHealthChecks(options);
+    }
+
+    /// <summary>
+    /// Maps the health endpoints from an options instance you own. Prefer this overload when the
+    /// same instance is also passed to <c>AddHealthCheckActivityFilter</c> from the
+    /// <c>Altinn.AspNet.HealthChecks.OpenTelemetry</c> package, so customised paths cannot drift
+    /// out of sync with trace suppression.
+    /// </summary>
+    /// <param name="endpoints">The endpoint route builder (e.g. the <c>WebApplication</c>).</param>
+    /// <param name="options">The endpoint configuration.</param>
+    public static IEndpointRouteBuilder MapAltinnHealthChecks(
+        this IEndpointRouteBuilder endpoints,
+        HealthCheckEndpointOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(options);
+
+        // One writer for all endpoints, built once from the configured detail level.
+        var writer = HealthCheckJsonResponseWriter.Create(options.IncludeExceptionDetails);
 
         return endpoints
-            .MapHealthCheckEndpoint(options.StartupPath, check => check.Tags.Contains(HealthCheckTags.Dependencies))
-            .MapHealthCheckEndpoint(options.LivenessPath, check => check.Tags.Contains(HealthCheckTags.Self))
-            .MapHealthCheckEndpoint(options.ReadinessPath, check => check.Tags.Contains(HealthCheckTags.Critical) || check.Tags.Contains(HealthCheckTags.Warmup))
-            .MapHealthCheckEndpoint(options.HealthPath, check => check.Tags.Contains(HealthCheckTags.Dependencies))
-            .MapHealthCheckEndpoint(options.DeepPath, check => check.Tags.Contains(HealthCheckTags.Dependencies) || check.Tags.Contains(HealthCheckTags.External));
+            .MapHealthCheckEndpoint(options.Startup, writer, static check => check.Tags.Contains(HealthCheckTags.Dependencies))
+            .MapHealthCheckEndpoint(options.Liveness, writer, static check => check.Tags.Contains(HealthCheckTags.Self))
+            .MapHealthCheckEndpoint(options.Readiness, writer, static check => check.Tags.Contains(HealthCheckTags.Critical) || check.Tags.Contains(HealthCheckTags.Warmup))
+            .MapHealthCheckEndpoint(options.Health, writer, static check => check.Tags.Contains(HealthCheckTags.Dependencies))
+            .MapHealthCheckEndpoint(options.Deep, writer, static check => check.Tags.Contains(HealthCheckTags.Dependencies) || check.Tags.Contains(HealthCheckTags.External));
     }
 
     private static IEndpointRouteBuilder MapHealthCheckEndpoint(
         this IEndpointRouteBuilder endpoints,
-        string path,
+        HealthEndpoint endpoint,
+        Func<Microsoft.AspNetCore.Http.HttpContext, HealthReport, Task> writer,
         Func<HealthCheckRegistration, bool> predicate)
     {
-        endpoints.MapHealthChecks(path, new HealthCheckOptions
+        // Blank counts as unmapped, not as "map me at the site root". Configuration binders can
+        // produce "" where they cannot produce null, and MapHealthChecks("") really does serve
+        // the health payload from /. Treating both the same way also keeps this in step with the
+        // OpenTelemetry filter, which derives its suppressed routes from these same paths.
+        if (string.IsNullOrWhiteSpace(endpoint.Path))
+        {
+            return endpoints;
+        }
+
+        var path = endpoint.Path;
+
+        var builder = endpoints.MapHealthChecks(path, new HealthCheckOptions
         {
             Predicate = predicate,
-            ResponseWriter = HealthCheckJsonResponseWriter.WriteResponse
+            ResponseWriter = writer
         });
+
+        endpoint.Configure?.Invoke(builder);
         return endpoints;
     }
 }

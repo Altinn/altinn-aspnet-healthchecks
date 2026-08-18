@@ -8,12 +8,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Altinn.AspNet.HealthChecks\Altinn.AspNet.HealthChecks.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.AspNet.HealthChecks.Probes\Altinn.AspNet.HealthChecks.Probes.csproj" />
     <ProjectReference Include="..\..\src\Altinn.AspNet.HealthChecks.Warmup\Altinn.AspNet.HealthChecks.Warmup.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
-    <PackageReference Include="AspNetCore.HealthChecks.Uris" />
     <PackageReference Include="Npgsql.DependencyInjection" />
   </ItemGroup>
 
