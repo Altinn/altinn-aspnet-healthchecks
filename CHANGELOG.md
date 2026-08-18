@@ -2,6 +2,17 @@
 
 All packages in this repository share one version and are released together.
 
+## [0.2.0](https://github.com/Altinn/altinn-aspnet-healthchecks/compare/v0.1.0...v0.2.0) (2026-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* HealthCheckEndpointOptions replaces the flat path properties with per-endpoint objects — `routes.DeepPath = x` becomes `o.Deep.Path = x`. IWarmupPhase gains a TimeoutSeconds property that implementers must supply. Altinn.AspNet.HealthChecks.OpenTelemetry now depends on the core package.
+
+### Features
+
+* reshape the endpoint, warmup and probe surface for 1.0 ([#4](https://github.com/Altinn/altinn-aspnet-healthchecks/issues/4)) ([2fec4e1](https://github.com/Altinn/altinn-aspnet-healthchecks/commit/2fec4e1c485e4999f40879d39e948b2ccf21e988))
+
 ## 0.1.0 (2026-08-17)
 
 Initial release of `Altinn.AspNet.HealthChecks`, `Altinn.AspNet.HealthChecks.Warmup` and
