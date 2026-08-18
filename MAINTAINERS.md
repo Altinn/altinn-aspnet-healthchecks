@@ -71,14 +71,33 @@ Everything else is automated; these three things are not, by design.
 build — so validation is a pull-request gate, not just a release-time check. It verifies that the
 `net8.0`, `net9.0` and `net10.0` assemblies inside a package stay API-compatible with each other.
 
-**After the first release ships, set the baseline.** In `src/Directory.Build.props`, uncomment:
+**Setting the baseline is a release-boundary operation.** In `src/Directory.Build.props`:
 
 ```xml
-<PackageValidationBaselineVersion>0.1.0</PackageValidationBaselineVersion>
+<PackageValidationBaselineVersion>0.2.0</PackageValidationBaselineVersion>
 ```
 
 From then on the build additionally diffs against that published package and **fails on any
-breaking change**. Keep it pointed at the most recent released version.
+breaking change**.
+
+Two rules keep this from tying itself in knots:
+
+1. **Set it to the version that just shipped, immediately after shipping it** — never before.
+   Enabling it *during* a release that contains breaking changes is circular: the baseline is
+   still the older version the release deliberately breaks from, so the build fails on the very
+   change you intended.
+2. **A release that contains intentional breaks ships with the baseline pointing at the previous
+   version, or unset.** Pre-1.0, that means each breaking release is "free" and the baseline is
+   re-pointed afterwards.
+
+**Adding a new package while a baseline is set** is the other trap: a brand-new project inherits
+the repo-wide baseline and `dotnet pack` fails trying to download a version of itself that never
+existed. Clear it in that project's csproj until it has shipped once:
+
+```xml
+<!-- Remove after this package's first release. -->
+<PackageValidationBaselineVersion></PackageValidationBaselineVersion>
+```
 
 When it fails, you have exactly two honest options:
 

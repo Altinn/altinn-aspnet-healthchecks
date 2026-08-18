@@ -26,11 +26,13 @@
     diffs the build against that released package and fails on a breaking change — which is
     what makes it safe to let dependency updates merge and release unattended.
 
-    Set it to the last released version after the first release ships (see MAINTAINERS.md).
+    Set it to the version that just shipped, immediately AFTER shipping it — never during a
+    release that contains intentional breaks, since the baseline would still be the older version
+    that release deliberately breaks from. See MAINTAINERS.md.
   -->
   <PropertyGroup>
     <EnablePackageValidation>true</EnablePackageValidation>
-    <!-- <PackageValidationBaselineVersion>0.1.0</PackageValidationBaselineVersion> -->
+    <!-- <PackageValidationBaselineVersion>0.2.0</PackageValidationBaselineVersion> -->
   </PropertyGroup>
 
   <ItemGroup>
