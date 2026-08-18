@@ -73,6 +73,38 @@ public sealed class HealthCheckJsonResponseWriterTests
         Assert.Equal(referenceBody, ourBody);
     }
 
+    [Fact]
+    public async Task Suppressing_data_writes_an_empty_data_object()
+    {
+        // The suppressed body must still be the UI format, so it is pinned against the reference
+        // writer's output for the same report with the data removed - not against a literal.
+        var withData = Report(("broker", Entry(
+            HealthStatus.Healthy,
+            description: "Ready",
+            data: new Dictionary<string, object> { ["Endpoints"] = "sb://internal.example.no/queue" })));
+        var withoutData = Report(("broker", Entry(HealthStatus.Healthy, description: "Ready")));
+
+        var (suppressed, _) = await Write(
+            HealthCheckJsonResponseWriter.Create(includeExceptionDetails: true, includeData: false),
+            withData);
+        var (reference, _) = await Write(UIResponseWriter.WriteHealthCheckUIResponse, withoutData);
+
+        Assert.Equal(reference, suppressed);
+        Assert.DoesNotContain("sb://internal.example.no", suppressed, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(Reports))]
+    public async Task Data_is_included_by_default(string name, HealthReport report)
+    {
+        Assert.NotNull(name);
+
+        var (created, _) = await Write(HealthCheckJsonResponseWriter.Create(includeExceptionDetails: true), report);
+        var (reference, _) = await Write(UIResponseWriter.WriteHealthCheckUIResponse, report);
+
+        Assert.Equal(reference, created);
+    }
+
     private static async Task<(string Body, string? ContentType)> Write(
         Func<HttpContext, HealthReport, Task> writer,
         HealthReport report)

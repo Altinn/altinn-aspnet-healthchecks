@@ -54,6 +54,22 @@ public sealed class HealthCheckEndpointOptions
     public bool IncludeExceptionDetails { get; set; } = true;
 
     /// <summary>
+    /// Whether the response body includes each entry's <c>data</c> contents. Defaults to
+    /// <see langword="true"/>, matching <c>AspNetCore.HealthChecks.UI.Client</c>. When
+    /// <see langword="false"/>, every entry still carries a <c>data</c> object, but an empty one.
+    /// </summary>
+    /// <remarks>
+    /// A check decides for itself what to put in its data, and a third-party check may put more
+    /// there than you would: MassTransit's bus-state check, for example, reports the broker's
+    /// host address and every queue name it knows. Unlike <see cref="IncludeExceptionDetails"/>
+    /// this is not about failures — the data is published while everything is healthy — so it is a
+    /// separate switch, and worth turning off wherever a health endpoint faces something you do
+    /// not trust. Keeping the (empty) <c>data</c> object means the body still parses as the
+    /// HealthChecks UI format.
+    /// </remarks>
+    public bool IncludeData { get; set; } = true;
+
+    /// <summary>
     /// All five endpoints, in declaration order. Useful for deriving other configuration from the
     /// mapped layout — the OpenTelemetry companion package uses it to suppress trace spans for
     /// exactly the endpoints that are mapped.
