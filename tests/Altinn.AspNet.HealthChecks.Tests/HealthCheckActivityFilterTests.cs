@@ -113,6 +113,72 @@ public sealed class HealthCheckActivityFilterTests : IDisposable
         Assert.Single(_exporter.Exported);
     }
 
+    [Fact]
+    public void Endpoint_options_keep_customised_paths_suppressed()
+    {
+        var endpoints = new HealthCheckEndpointOptions();
+        endpoints.Deep.Path = "/internal/health/deep";
+
+        _provider = Sdk.CreateTracerProviderBuilder()
+            .AddSource(AspNetCoreSourceName, _otherSource.Name)
+            .SetSampler(new AlwaysOnSampler())
+            // Sharing the instance with MapAltinnHealthChecks is what makes desync impossible:
+            // with the hardcoded defaults, moving DeepPath silently stopped suppressing it.
+            .AddHealthCheckActivityFilter(endpoints)
+            .AddProcessor(new SimpleActivityExportProcessor(_exporter))
+            .Build();
+
+        EmitServerSpan(_aspNetCoreSource, "http.route", "/internal/health/deep");
+        Assert.Empty(_exporter.Exported);
+
+        // Still covers the endpoints left at their defaults.
+        EmitServerSpan(_aspNetCoreSource, "http.route", "/health/liveness");
+        Assert.Empty(_exporter.Exported);
+    }
+
+    [Fact]
+    public void Endpoint_options_read_paths_set_after_the_filter_is_registered()
+    {
+        // The tracer provider is normally built during service registration, before
+        // MapAltinnHealthChecks runs — so snapshotting paths in the constructor would desync on
+        // anything configured in between.
+        var endpoints = new HealthCheckEndpointOptions();
+
+        _provider = Sdk.CreateTracerProviderBuilder()
+            .AddSource(AspNetCoreSourceName, _otherSource.Name)
+            .SetSampler(new AlwaysOnSampler())
+            .AddHealthCheckActivityFilter(endpoints)
+            .AddProcessor(new SimpleActivityExportProcessor(_exporter))
+            .Build();
+
+        endpoints.Deep.Path = "/internal/health/deep";
+
+        EmitServerSpan(_aspNetCoreSource, "http.route", "/internal/health/deep");
+        Assert.Empty(_exporter.Exported);
+
+        // And the path it moved away from is no longer suppressed.
+        EmitServerSpan(_aspNetCoreSource, "http.route", "/health/deep");
+        Assert.Single(_exporter.Exported);
+    }
+
+    [Fact]
+    public void Endpoint_options_do_not_suppress_a_disabled_endpoints_path()
+    {
+        var endpoints = new HealthCheckEndpointOptions();
+        endpoints.Startup.Disable();
+
+        _provider = Sdk.CreateTracerProviderBuilder()
+            .AddSource(AspNetCoreSourceName, _otherSource.Name)
+            .SetSampler(new AlwaysOnSampler())
+            .AddHealthCheckActivityFilter(endpoints)
+            .AddProcessor(new SimpleActivityExportProcessor(_exporter))
+            .Build();
+
+        // Nothing is mapped there, so a route ending that way belongs to the app.
+        EmitServerSpan(_aspNetCoreSource, "http.route", "/health/startup");
+        Assert.Single(_exporter.Exported);
+    }
+
     private sealed class CollectingExporter : BaseExporter<Activity>
     {
         public List<Activity> Exported { get; } = [];
