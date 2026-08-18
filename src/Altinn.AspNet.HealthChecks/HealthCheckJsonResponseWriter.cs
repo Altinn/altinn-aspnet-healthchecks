@@ -27,12 +27,17 @@ public static class HealthCheckJsonResponseWriter
 {
     private static readonly JsonSerializerOptions SerializerOptions = CreateSerializerOptions();
 
+    // Stands in for a suppressed entry's data. An empty object is what the format emits for a check
+    // that reports no data anyway, so the body still parses as HealthChecks UI JSON.
+    private static readonly IReadOnlyDictionary<string, object> NoData =
+        new Dictionary<string, object>();
+
     /// <summary>
     /// Serializes <paramref name="report"/> to the response body as HealthChecks UI JSON and
     /// sets the content type to <c>application/json</c>. Includes exception details.
     /// </summary>
     public static Task WriteResponse(HttpContext httpContext, HealthReport report) =>
-        WriteResponse(httpContext, report, includeExceptionDetails: true);
+        WriteResponse(httpContext, report, includeExceptionDetails: true, includeData: true);
 
     /// <summary>
     /// Returns a response writer at the given detail level, for use as
@@ -45,11 +50,33 @@ public static class HealthCheckJsonResponseWriter
     /// by anything untrusted.
     /// </param>
     public static Func<HttpContext, HealthReport, Task> Create(bool includeExceptionDetails) =>
-        includeExceptionDetails
-            ? WriteResponse
-            : static (context, report) => WriteResponse(context, report, includeExceptionDetails: false);
+        Create(includeExceptionDetails, includeData: true);
 
-    private static Task WriteResponse(HttpContext httpContext, HealthReport report, bool includeExceptionDetails)
+    /// <summary>
+    /// Returns a response writer at the given detail level, for use as
+    /// <see cref="Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions.ResponseWriter"/>.
+    /// </summary>
+    /// <param name="includeExceptionDetails">
+    /// When <see langword="false"/>, the <c>exception</c> field is omitted and a missing
+    /// description no longer falls back to the exception message. Exception messages routinely
+    /// carry connection strings and hostnames, so suppress them wherever the endpoint is reachable
+    /// by anything untrusted.
+    /// </param>
+    /// <param name="includeData">
+    /// When <see langword="false"/>, each entry's <c>data</c> is written as an empty object. Checks
+    /// choose their own data, and a third-party check may report broker addresses or queue names
+    /// there even while healthy.
+    /// </param>
+    public static Func<HttpContext, HealthReport, Task> Create(bool includeExceptionDetails, bool includeData) =>
+        includeExceptionDetails && includeData
+            ? WriteResponse
+            : (context, report) => WriteResponse(context, report, includeExceptionDetails, includeData);
+
+    private static Task WriteResponse(
+        HttpContext httpContext,
+        HealthReport report,
+        bool includeExceptionDetails,
+        bool includeData)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(report);
@@ -57,7 +84,7 @@ public static class HealthCheckJsonResponseWriter
         httpContext.Response.ContentType = "application/json";
         return JsonSerializer.SerializeAsync(
             httpContext.Response.Body,
-            JsonReport.CreateFrom(report, includeExceptionDetails),
+            JsonReport.CreateFrom(report, includeExceptionDetails, includeData),
             SerializerOptions,
             httpContext.RequestAborted);
     }
@@ -86,7 +113,7 @@ public static class HealthCheckJsonResponseWriter
 
         public Dictionary<string, JsonReportEntry> Entries { get; init; } = [];
 
-        public static JsonReport CreateFrom(HealthReport report, bool includeExceptionDetails)
+        public static JsonReport CreateFrom(HealthReport report, bool includeExceptionDetails, bool includeData)
         {
             var jsonReport = new JsonReport
             {
@@ -111,7 +138,7 @@ public static class HealthCheckJsonResponseWriter
 
                 jsonReport.Entries.Add(name, new JsonReportEntry
                 {
-                    Data = entry.Data,
+                    Data = includeData ? entry.Data : NoData,
                     Description = description,
                     Duration = entry.Duration,
                     Exception = exception,

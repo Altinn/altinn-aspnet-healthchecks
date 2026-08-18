@@ -195,6 +195,55 @@ public class HealthEndpointRoutingTests
     }
 
     [Fact]
+    public async Task Entry_data_is_suppressed_when_disabled()
+    {
+        // A healthy third-party check can publish broker addresses and queue names through its data,
+        // so this is suppressed independently of exception details.
+        const string BrokerAddress = "sb://internal.example.no/some-queue";
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var app = BuildApp(
+            services => services.AddHealthChecks().AddCheck(
+                "broker",
+                () => HealthCheckResult.Healthy("Ready", new Dictionary<string, object> { ["Endpoints"] = BrokerAddress }),
+                tags: [HealthCheckTags.Dependencies]),
+            configureEndpoints: o => o.IncludeData = false);
+        await app.StartAsync(cancellationToken);
+        var client = app.GetTestClient();
+
+        using var response = await client.GetAsync("/health", cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        Assert.DoesNotContain(BrokerAddress, json, StringComparison.Ordinal);
+
+        using var doc = JsonDocument.Parse(json);
+        var entry = doc.RootElement.GetProperty("entries").GetProperty("broker");
+        // The data object stays, so the body is still the UI format; only its contents are gone.
+        Assert.Empty(entry.GetProperty("data").EnumerateObject());
+        // Suppressing data must not suppress the description, which the check chose to publish.
+        Assert.Equal("Ready", entry.GetProperty("description").GetString());
+    }
+
+    [Fact]
+    public async Task Entry_data_is_included_by_default()
+    {
+        const string BrokerAddress = "sb://internal.example.no/some-queue";
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var app = BuildApp(services => services.AddHealthChecks().AddCheck(
+            "broker",
+            () => HealthCheckResult.Healthy("Ready", new Dictionary<string, object> { ["Endpoints"] = BrokerAddress }),
+            tags: [HealthCheckTags.Dependencies]));
+        await app.StartAsync(cancellationToken);
+        var client = app.GetTestClient();
+
+        using var response = await client.GetAsync("/health", cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        Assert.Contains(BrokerAddress, json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Exception_details_are_included_by_default()
     {
         const string Secret = "Host=db.internal;Password=hunter2";

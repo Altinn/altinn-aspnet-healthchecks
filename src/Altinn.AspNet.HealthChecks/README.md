@@ -124,6 +124,26 @@ present — when a check throws, the health check service uses the exception mes
 description, so suppressing only the one field would still leak it. The body then no longer
 matches the UI format. A future major version will default this to off.
 
+### Entry data on public endpoints
+
+Each entry also carries the `data` dictionary its check chose to publish, and a third-party check
+may put more there than you would. MassTransit's bus-state check, for example, reports the broker
+host address and the queue names it knows — while perfectly healthy, so `IncludeExceptionDetails`
+never comes into it.
+
+```csharp
+app.MapAltinnHealthChecks(o =>
+{
+    o.IncludeExceptionDetails = builder.Environment.IsDevelopment();
+    o.IncludeData = builder.Environment.IsDevelopment();
+});
+```
+
+With `IncludeData = false` every entry still carries a `data` object, just an empty one, so the
+body remains valid HealthChecks UI JSON — an empty `data` is what the format emits for a check that
+reports none. Turn it off wherever a health endpoint faces something you do not trust, and keep it
+on in development, where the data is the diagnostic.
+
 ### Config-driven outbound probes
 
 Use the [`Probes`](https://www.nuget.org/packages/Altinn.AspNet.HealthChecks.Probes) companion

@@ -42,7 +42,7 @@ public static class HealthCheckEndpointRouteBuilderExtensions
         ArgumentNullException.ThrowIfNull(options);
 
         // One writer for all endpoints, built once from the configured detail level.
-        var writer = HealthCheckJsonResponseWriter.Create(options.IncludeExceptionDetails);
+        var writer = HealthCheckJsonResponseWriter.Create(options.IncludeExceptionDetails, options.IncludeData);
 
         return endpoints
             .MapHealthCheckEndpoint(options.Startup, writer, static check => check.Tags.Contains(HealthCheckTags.Dependencies))
