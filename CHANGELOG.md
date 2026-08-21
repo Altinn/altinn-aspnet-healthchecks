@@ -2,6 +2,18 @@
 
 All packages in this repository share one version and are released together.
 
+## [0.3.0](https://github.com/Altinn/altinn-aspnet-healthchecks/compare/v0.2.0...v0.3.0) (2026-08-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* the response body is a new format under a new content type, application/vnd.altinn.health.v1+json. Statuses are lowercase; `exception` is an object with message/stackTrace/innerException rather than a string; `data`, `tags`, `description` and `exception` are omitted when absent or withheld, where `data` was previously always present. HealthChecks UI dashboards will no longer parse it.
+
+### Features
+
+* align the endpoint, tag and response surface with ServiceDefaults ([#11](https://github.com/Altinn/altinn-aspnet-healthchecks/issues/11)) ([42c0132](https://github.com/Altinn/altinn-aspnet-healthchecks/commit/42c013294e957f4ba67c23264f7fa6d8fe9e2b3c))
+* allow suppressing entry data in the response body ([#9](https://github.com/Altinn/altinn-aspnet-healthchecks/issues/9)) ([bfc4a3a](https://github.com/Altinn/altinn-aspnet-healthchecks/commit/bfc4a3af11a0f6ef9e1bd2f932d2a524f534d638))
+
 ## [0.2.0](https://github.com/Altinn/altinn-aspnet-healthchecks/compare/v0.1.0...v0.2.0) (2026-08-18)
 
 
