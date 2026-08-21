@@ -10,12 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 //    and (in a real app) OpenTelemetry trace suppression — see AddHealthCheckActivityFilter in
 //    the Altinn.AspNet.HealthChecks.OpenTelemetry package. Sharing one instance is what stops a
 //    customised path from silently desyncing the two.
-var healthEndpoints = new HealthCheckEndpointOptions
-{
-    // Exception messages can carry connection strings and hostnames. Publish them only where the
-    // endpoint is not reachable by anything untrusted.
-    IncludeExceptionDetails = builder.Environment.IsDevelopment()
-};
+//    DetailLevel is left unset on purpose: it then follows the environment, so exception messages
+//    and check data stay out of a production body without the app having to say so. Run with
+//    ASPNETCORE_ENVIRONMENT=Development / Staging / Production to see the three levels.
+var healthEndpoints = new HealthCheckEndpointOptions();
 
 // 2. Register the convention: the liveness check plus the endpoint/tag layout.
 var healthChecks = builder.Services.AddAltinnHealthChecks();
@@ -77,6 +75,6 @@ builder.Services.AddWarmup(builder.Configuration.GetSection("Warmup"), warmup =>
 var app = builder.Build();
 
 app.MapAltinnHealthChecks(healthEndpoints);
-app.MapGet("/", () => "SampleApi. Try /health, /health/deep, /health/liveness, /health/readiness, /health/startup");
+app.MapGet("/", () => "SampleApi. Try /alive, /health, /health/deep, /health/readiness, /health/startup");
 
 app.Run();

@@ -41,7 +41,12 @@ curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 9.0 --runt
 
 # Run the sample and probe the endpoints
 ASPNETCORE_URLS=http://127.0.0.1:5199 dotnet run --project samples/SampleApi
+curl http://127.0.0.1:5199/alive
 curl http://127.0.0.1:5199/health/deep
+curl -H 'Accept: text/plain' http://127.0.0.1:5199/health
+
+# Response detail follows the environment, so this is how you see the three levels:
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project samples/SampleApi
 
 # Optional: point the sample at a real Postgres to see the factory-based NpgSql check
 # (without it, a fake in-memory "database" check is registered instead)

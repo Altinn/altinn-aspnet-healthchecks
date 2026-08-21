@@ -16,7 +16,7 @@ tracerProviderBuilder
 ```
 
 Without arguments, the filter suppresses the five endpoints mapped by
-`MapAltinnHealthChecks()`: `/health`, `/health/liveness`, `/health/readiness`,
+`MapAltinnHealthChecks()`: `/alive`, `/health`, `/health/readiness`,
 `/health/startup` and `/health/deep`. Pass your own route suffixes to replace the defaults:
 
 ```csharp

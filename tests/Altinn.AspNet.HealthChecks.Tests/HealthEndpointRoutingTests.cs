@@ -2,6 +2,10 @@ using System.Text.Json;
 using Altinn.AspNet.HealthChecks.Warmup;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+#if NET9_0_OR_GREATER
+using Microsoft.AspNetCore.Http.Metadata;
+using Microsoft.AspNetCore.Routing;
+#endif
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -16,9 +20,17 @@ public class HealthEndpointRoutingTests
     private static WebApplication BuildApp(
         Action<IServiceCollection>? configureServices = null,
         Action<HealthCheckEndpointOptions>? configureEndpoints = null,
-        Action<AltinnHealthCheckOptions>? configureConvention = null)
+        Action<AltinnHealthCheckOptions>? configureConvention = null,
+        // Environments.Production is a static field, not a constant, so it cannot be the default.
+        string environmentName = "Production")
     {
-        var builder = WebApplication.CreateBuilder();
+        // The environment must be pinned. Left to CreateBuilder it comes from ASPNETCORE_ENVIRONMENT
+        // in whatever shell is running the suite, and the detail level defaults to whatever that
+        // implies — green on one machine and red on another, for reasons invisible from the test.
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            EnvironmentName = environmentName
+        });
         builder.WebHost.UseTestServer();
         builder.Logging.ClearProviders();
 
@@ -57,7 +69,7 @@ public class HealthEndpointRoutingTests
         await app.StartAsync(cancellationToken);
         var client = app.GetTestClient();
 
-        var entries = await GetEntryNamesAsync(client, "/health/liveness", cancellationToken);
+        var entries = await GetEntryNamesAsync(client, "/alive", cancellationToken);
 
         Assert.Equal(["self"], entries);
     }
@@ -140,6 +152,23 @@ public class HealthEndpointRoutingTests
     }
 
     [Fact]
+    public async Task Liveness_can_be_moved_back_to_the_pre_alive_path()
+    {
+        // The default moved to /alive, matching the Microsoft/Aspire scaffolding. Deployments
+        // already probing something else override the path rather than changing their manifests.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var app = BuildApp(configureEndpoints: o => o.Liveness.Path = "/health/liveness");
+        await app.StartAsync(cancellationToken);
+        var client = app.GetTestClient();
+
+        using var moved = await client.GetAsync("/health/liveness", cancellationToken);
+        using var original = await client.GetAsync("/alive", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, original.StatusCode);
+    }
+
+    [Fact]
     public async Task Endpoint_conventions_are_applied()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -162,13 +191,69 @@ public class HealthEndpointRoutingTests
         await app.StartAsync(cancellationToken);
         var client = app.GetTestClient();
 
-        var entries = await GetEntryNamesAsync(client, "/health/liveness", cancellationToken);
+        var entries = await GetEntryNamesAsync(client, "/alive", cancellationToken);
 
         Assert.Equal(["process-self"], entries);
     }
 
     [Fact]
-    public async Task Exception_details_are_suppressed_when_disabled()
+    public async Task Checks_tagged_live_surface_on_liveness()
+    {
+        // The tag value matches the Microsoft/Aspire scaffolding, so a check registered as
+        // AddCheck("…", …, ["live"]) needs no retagging to end up here.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var app = BuildApp(services => services.AddHealthChecks().AddCheck(
+            "gc",
+            () => HealthCheckResult.Healthy(),
+            tags: ["live"]));
+        await app.StartAsync(cancellationToken);
+        var client = app.GetTestClient();
+
+        var entries = await GetEntryNamesAsync(client, "/alive", cancellationToken);
+
+        Assert.Contains("gc", entries);
+    }
+
+    [Fact]
+    public async Task Production_publishes_neither_exception_details_nor_data()
+    {
+        const string Secret = "Host=db.internal;Password=hunter2";
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var app = BuildApp(services =>
+        {
+            services.AddHealthChecks()
+                .AddCheck("failing", () => throw new InvalidOperationException(Secret), tags: [HealthCheckTags.Dependencies])
+                // A healthy third-party check can publish broker addresses through its data.
+                .AddCheck(
+                    "broker",
+                    () => HealthCheckResult.Healthy("Ready", new Dictionary<string, object> { ["Endpoints"] = Secret }),
+                    tags: [HealthCheckTags.Dependencies]);
+        });
+        await app.StartAsync(cancellationToken);
+        var client = app.GetTestClient();
+
+        using var response = await client.GetAsync("/health", cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        // Neither the exception field, the description fallback, nor the data may leak it.
+        Assert.DoesNotContain(Secret, json, StringComparison.Ordinal);
+
+        using var doc = JsonDocument.Parse(json);
+        var entries = doc.RootElement.GetProperty("entries");
+
+        var failing = entries.GetProperty("failing");
+        Assert.False(failing.TryGetProperty("exception", out _));
+        Assert.False(failing.TryGetProperty("description", out _));
+
+        var broker = entries.GetProperty("broker");
+        Assert.False(broker.TryGetProperty("data", out _));
+        // A description is safe on an entry that did not fail, so it survives.
+        Assert.Equal("Ready", broker.GetProperty("description").GetString());
+    }
+
+    [Fact]
+    public async Task Development_publishes_stack_traces()
     {
         const string Secret = "Host=db.internal;Password=hunter2";
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -178,89 +263,93 @@ public class HealthEndpointRoutingTests
                 "failing",
                 () => throw new InvalidOperationException(Secret),
                 tags: [HealthCheckTags.Dependencies]),
-            configureEndpoints: o => o.IncludeExceptionDetails = false);
+            environmentName: Environments.Development);
         await app.StartAsync(cancellationToken);
         var client = app.GetTestClient();
 
         using var response = await client.GetAsync("/health", cancellationToken);
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        // Neither the exception field nor the description fallback may leak it.
-        Assert.DoesNotContain(Secret, json, StringComparison.Ordinal);
-
         using var doc = JsonDocument.Parse(json);
-        var entry = doc.RootElement.GetProperty("entries").GetProperty("failing");
-        Assert.False(entry.TryGetProperty("exception", out _));
-        Assert.False(entry.TryGetProperty("description", out _));
+        var exception = doc.RootElement.GetProperty("entries").GetProperty("failing").GetProperty("exception");
+
+        Assert.Equal(Secret, exception.GetProperty("message").GetString());
+        Assert.True(exception.TryGetProperty("stackTrace", out _));
     }
 
     [Fact]
-    public async Task Entry_data_is_suppressed_when_disabled()
+    public async Task An_explicit_detail_level_overrides_the_environment()
     {
-        // A healthy third-party check can publish broker addresses and queue names through its data,
-        // so this is suppressed independently of exception details.
-        const string BrokerAddress = "sb://internal.example.no/some-queue";
         var cancellationToken = TestContext.Current.CancellationToken;
 
         await using var app = BuildApp(
-            services => services.AddHealthChecks().AddCheck(
-                "broker",
-                () => HealthCheckResult.Healthy("Ready", new Dictionary<string, object> { ["Endpoints"] = BrokerAddress }),
-                tags: [HealthCheckTags.Dependencies]),
-            configureEndpoints: o => o.IncludeData = false);
+            configureEndpoints: o => o.DetailLevel = HealthReportDetailLevel.Minimal,
+            environmentName: Environments.Development);
         await app.StartAsync(cancellationToken);
         var client = app.GetTestClient();
 
         using var response = await client.GetAsync("/health", cancellationToken);
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        Assert.DoesNotContain(BrokerAddress, json, StringComparison.Ordinal);
 
         using var doc = JsonDocument.Parse(json);
-        var entry = doc.RootElement.GetProperty("entries").GetProperty("broker");
-        // The data object stays, so the body is still the UI format; only its contents are gone.
-        Assert.Empty(entry.GetProperty("data").EnumerateObject());
-        // Suppressing data must not suppress the description, which the check chose to publish.
-        Assert.Equal("Ready", entry.GetProperty("description").GetString());
+        var entry = doc.RootElement.GetProperty("entries").GetProperty("database");
+
+        // Minimal writes nothing a check authored — not even its tags.
+        Assert.False(entry.TryGetProperty("tags", out _));
+        Assert.False(entry.TryGetProperty("data", out _));
     }
 
     [Fact]
-    public async Task Entry_data_is_included_by_default()
+    public async Task Plain_text_is_served_when_asked_for()
     {
-        const string BrokerAddress = "sb://internal.example.no/some-queue";
         var cancellationToken = TestContext.Current.CancellationToken;
-
-        await using var app = BuildApp(services => services.AddHealthChecks().AddCheck(
-            "broker",
-            () => HealthCheckResult.Healthy("Ready", new Dictionary<string, object> { ["Endpoints"] = BrokerAddress }),
-            tags: [HealthCheckTags.Dependencies]));
+        await using var app = BuildApp();
         await app.StartAsync(cancellationToken);
         var client = app.GetTestClient();
 
-        using var response = await client.GetAsync("/health", cancellationToken);
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/health");
+        request.Headers.Add("Accept", "text/plain");
 
-        Assert.Contains(BrokerAddress, json, StringComparison.Ordinal);
+        using var response = await client.SendAsync(request, cancellationToken);
+
+        Assert.Equal("text/plain", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("healthy", await response.Content.ReadAsStringAsync(cancellationToken));
     }
 
-    [Fact]
-    public async Task Exception_details_are_included_by_default()
+#if NET9_0_OR_GREATER
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Http_metrics_suppression_follows_the_option(bool disableHttpMetrics)
     {
-        const string Secret = "Host=db.internal;Password=hunter2";
+        // The failure mode is silent — a target-framework guard or a wiring regression puts probe
+        // traffic back into http.server.request.duration with nothing to see in a response.
         var cancellationToken = TestContext.Current.CancellationToken;
-
-        await using var app = BuildApp(services => services.AddHealthChecks().AddCheck(
-            "failing",
-            () => throw new InvalidOperationException(Secret),
-            tags: [HealthCheckTags.Dependencies]));
+        await using var app = BuildApp(configureEndpoints: o => o.DisableHttpMetrics = disableHttpMetrics);
         await app.StartAsync(cancellationToken);
-        var client = app.GetTestClient();
 
-        using var response = await client.GetAsync("/health", cancellationToken);
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        var endpoints = app.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(endpoint => endpoint.RoutePattern.RawText is "/alive" or "/health"
+                or "/health/readiness" or "/health/startup" or "/health/deep")
+            .ToList();
 
-        Assert.Contains(Secret, json, StringComparison.Ordinal);
+        Assert.Equal(5, endpoints.Count);
+        Assert.All(endpoints, endpoint =>
+        {
+            var metadata = endpoint.Metadata.GetMetadata<IDisableHttpMetricsMetadata>();
+
+            if (disableHttpMetrics)
+            {
+                Assert.NotNull(metadata);
+            }
+            else
+            {
+                Assert.Null(metadata);
+            }
+        });
     }
+#endif
 
     [Fact]
     public async Task Readiness_gates_on_warmup_then_recovers()

@@ -2,15 +2,6 @@
   "version": 2,
   "dependencies": {
     "net10.0": {
-      "AspNetCore.HealthChecks.UI.Client": {
-        "type": "Direct",
-        "requested": "[9.0.0, )",
-        "resolved": "9.0.0",
-        "contentHash": "1Ub3Wvvbz7CMuFNWgLEc9qqQibiMoovDML/WHrwr5J83RPgtI20giCR92s/ipLgu7IIuqw+W/y7WpIeHqAICxg==",
-        "dependencies": {
-          "AspNetCore.HealthChecks.UI.Core": "9.0.0"
-        }
-      },
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
         "requested": "[10.0.0, )",
@@ -31,11 +22,6 @@
         "dependencies": {
           "xunit.v3.mtp-v1": "[3.2.2]"
         }
-      },
-      "AspNetCore.HealthChecks.UI.Core": {
-        "type": "Transitive",
-        "resolved": "9.0.0",
-        "contentHash": "TVriy4hgYnhfqz6NAzv8qe62Q8wf82iKUL6WV9selqeFZTq1ILi39Sic6sFQegRysvAVcnxKP/vY8z9Fk8x6XQ=="
       },
       "Microsoft.ApplicationInsights": {
         "type": "Transitive",
@@ -168,21 +154,21 @@
       "altinn.aspnet.healthchecks.opentelemetry": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.2.0, )",
           "OpenTelemetry": "[1.17.0, )"
         }
       },
       "altinn.aspnet.healthchecks.probes": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.2.0, )",
           "AspNetCore.HealthChecks.Uris": "[9.0.0, )"
         }
       },
       "altinn.aspnet.healthchecks.warmup": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )"
+          "Altinn.AspNet.HealthChecks": "[0.2.0, )"
         }
       },
       "AspNetCore.HealthChecks.Uris": {
@@ -202,15 +188,6 @@
       }
     },
     "net8.0": {
-      "AspNetCore.HealthChecks.UI.Client": {
-        "type": "Direct",
-        "requested": "[9.0.0, )",
-        "resolved": "9.0.0",
-        "contentHash": "1Ub3Wvvbz7CMuFNWgLEc9qqQibiMoovDML/WHrwr5J83RPgtI20giCR92s/ipLgu7IIuqw+W/y7WpIeHqAICxg==",
-        "dependencies": {
-          "AspNetCore.HealthChecks.UI.Core": "9.0.0"
-        }
-      },
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
         "requested": "[8.0.30, )",
@@ -232,11 +209,6 @@
           "xunit.v3.mtp-v1": "[3.2.2]"
         }
       },
-      "AspNetCore.HealthChecks.UI.Core": {
-        "type": "Transitive",
-        "resolved": "9.0.0",
-        "contentHash": "TVriy4hgYnhfqz6NAzv8qe62Q8wf82iKUL6WV9selqeFZTq1ILi39Sic6sFQegRysvAVcnxKP/vY8z9Fk8x6XQ=="
-      },
       "Microsoft.ApplicationInsights": {
         "type": "Transitive",
         "resolved": "2.23.0",
@@ -376,21 +348,21 @@
       "altinn.aspnet.healthchecks.opentelemetry": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.2.0, )",
           "OpenTelemetry": "[1.17.0, )"
         }
       },
       "altinn.aspnet.healthchecks.probes": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.2.0, )",
           "AspNetCore.HealthChecks.Uris": "[9.0.0, )"
         }
       },
       "altinn.aspnet.healthchecks.warmup": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )"
+          "Altinn.AspNet.HealthChecks": "[0.2.0, )"
         }
       },
       "AspNetCore.HealthChecks.Uris": {
@@ -410,15 +382,6 @@
       }
     },
     "net9.0": {
-      "AspNetCore.HealthChecks.UI.Client": {
-        "type": "Direct",
-        "requested": "[9.0.0, )",
-        "resolved": "9.0.0",
-        "contentHash": "1Ub3Wvvbz7CMuFNWgLEc9qqQibiMoovDML/WHrwr5J83RPgtI20giCR92s/ipLgu7IIuqw+W/y7WpIeHqAICxg==",
-        "dependencies": {
-          "AspNetCore.HealthChecks.UI.Core": "9.0.0"
-        }
-      },
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
         "requested": "[9.0.19, )",
@@ -440,11 +403,6 @@
           "xunit.v3.mtp-v1": "[3.2.2]"
         }
       },
-      "AspNetCore.HealthChecks.UI.Core": {
-        "type": "Transitive",
-        "resolved": "9.0.0",
-        "contentHash": "TVriy4hgYnhfqz6NAzv8qe62Q8wf82iKUL6WV9selqeFZTq1ILi39Sic6sFQegRysvAVcnxKP/vY8z9Fk8x6XQ=="
-      },
       "Microsoft.ApplicationInsights": {
         "type": "Transitive",
         "resolved": "2.23.0",
@@ -584,21 +542,21 @@
       "altinn.aspnet.healthchecks.opentelemetry": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.2.0, )",
           "OpenTelemetry": "[1.17.0, )"
         }
       },
       "altinn.aspnet.healthchecks.probes": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.2.0, )",
           "AspNetCore.HealthChecks.Uris": "[9.0.0, )"
         }
       },
       "altinn.aspnet.healthchecks.warmup": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )"
+          "Altinn.AspNet.HealthChecks": "[0.2.0, )"
         }
       },
       "AspNetCore.HealthChecks.Uris": {

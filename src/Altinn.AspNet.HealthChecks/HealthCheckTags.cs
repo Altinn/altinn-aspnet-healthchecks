@@ -7,8 +7,17 @@ namespace Altinn.AspNet.HealthChecks;
 /// </summary>
 public static class HealthCheckTags
 {
-    /// <summary>Process-only check. Surfaces on the liveness endpoint. Should always be healthy.</summary>
-    public const string Self = "self";
+    /// <summary>
+    /// Process-only check. Surfaces on the liveness endpoint. Should always be healthy — an
+    /// unhealthy liveness probe gets the container restarted, so nothing that depends on another
+    /// process belongs here.
+    /// </summary>
+    /// <remarks>
+    /// The value matches the tag used by the Microsoft/Aspire service-defaults scaffolding
+    /// (<c>AddCheck("self", …, ["live"])</c>), so checks already registered that way surface on the
+    /// liveness endpoint without being retagged.
+    /// </remarks>
+    public const string Live = "live";
 
     /// <summary>
     /// A dependency the app talks to (database, cache, broker, ...). Surfaces on the

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 
 namespace Altinn.AspNet.HealthChecks;
 
@@ -41,21 +43,48 @@ public static class HealthCheckEndpointRouteBuilderExtensions
         ArgumentNullException.ThrowIfNull(endpoints);
         ArgumentNullException.ThrowIfNull(options);
 
-        // One writer for all endpoints, built once from the configured detail level.
-        var writer = HealthCheckJsonResponseWriter.Create(options.IncludeExceptionDetails, options.IncludeData);
+        // One writer for all endpoints, built once from the resolved detail level.
+        var writer = new HealthReportResponseWriter(
+            ResolveDetailLevel(options.DetailLevel, endpoints.ServiceProvider),
+            options.Formatters);
 
         return endpoints
-            .MapHealthCheckEndpoint(options.Startup, writer, static check => check.Tags.Contains(HealthCheckTags.Dependencies))
-            .MapHealthCheckEndpoint(options.Liveness, writer, static check => check.Tags.Contains(HealthCheckTags.Self))
-            .MapHealthCheckEndpoint(options.Readiness, writer, static check => check.Tags.Contains(HealthCheckTags.Critical) || check.Tags.Contains(HealthCheckTags.Warmup))
-            .MapHealthCheckEndpoint(options.Health, writer, static check => check.Tags.Contains(HealthCheckTags.Dependencies))
-            .MapHealthCheckEndpoint(options.Deep, writer, static check => check.Tags.Contains(HealthCheckTags.Dependencies) || check.Tags.Contains(HealthCheckTags.External));
+            .MapHealthCheckEndpoint(options.Startup, options, writer, static check => check.Tags.Contains(HealthCheckTags.Dependencies))
+            .MapHealthCheckEndpoint(options.Liveness, options, writer, static check => check.Tags.Contains(HealthCheckTags.Live))
+            .MapHealthCheckEndpoint(options.Readiness, options, writer, static check => check.Tags.Contains(HealthCheckTags.Critical) || check.Tags.Contains(HealthCheckTags.Warmup))
+            .MapHealthCheckEndpoint(options.Health, options, writer, static check => check.Tags.Contains(HealthCheckTags.Dependencies))
+            .MapHealthCheckEndpoint(options.Deep, options, writer, static check => check.Tags.Contains(HealthCheckTags.Dependencies) || check.Tags.Contains(HealthCheckTags.External));
+    }
+
+    // Left explicit when the caller set it; otherwise read from the environment. GetService rather
+    // than GetRequiredService: a bare IEndpointRouteBuilder outside a host is a legitimate way to
+    // map these, and refusing to start is a worse answer than the quiet detail level.
+    internal static HealthReportDetailLevel ResolveDetailLevel(
+        HealthReportDetailLevel? configured,
+        IServiceProvider services)
+    {
+        if (configured is { } level)
+        {
+            return level;
+        }
+
+        var environment = services.GetService<IHostEnvironment>();
+
+        if (environment is null || environment.IsProduction())
+        {
+            return HealthReportDetailLevel.Summary;
+        }
+
+        return environment.IsDevelopment()
+            ? HealthReportDetailLevel.Full
+            : HealthReportDetailLevel.Diagnostic;
     }
 
     private static IEndpointRouteBuilder MapHealthCheckEndpoint(
         this IEndpointRouteBuilder endpoints,
         HealthEndpoint endpoint,
-        Func<Microsoft.AspNetCore.Http.HttpContext, HealthReport, Task> writer,
+        HealthCheckEndpointOptions options,
+        HealthReportResponseWriter writer,
         Func<HealthCheckRegistration, bool> predicate)
     {
         // Blank counts as unmapped, not as "map me at the site root". Configuration binders can
@@ -72,8 +101,15 @@ public static class HealthCheckEndpointRouteBuilderExtensions
         var builder = endpoints.MapHealthChecks(path, new HealthCheckOptions
         {
             Predicate = predicate,
-            ResponseWriter = writer
+            ResponseWriter = writer.WriteAsync
         });
+
+        if (options.DisableHttpMetrics)
+        {
+#if NET9_0_OR_GREATER
+            builder.DisableHttpMetrics();
+#endif
+        }
 
         endpoint.Configure?.Invoke(builder);
         return endpoints;

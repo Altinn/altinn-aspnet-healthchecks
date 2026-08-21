@@ -12,8 +12,9 @@ public static class HealthCheckServiceCollectionExtensions
     /// Registers health checks with the baseline liveness check. Register your dependency checks
     /// on the returned builder with the tags from <see cref="HealthCheckTags"/>, then call
     /// <see cref="HealthCheckEndpointRouteBuilderExtensions.MapAltinnHealthChecks(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder, HealthCheckEndpointOptions)"/>.
-    /// Safe to call more than once (like <c>AddHealthChecks</c> itself); the liveness check is only
-    /// registered on the first call, and later <paramref name="configure"/> callbacks cannot rename it.
+    /// Safe to call more than once (like <c>AddHealthChecks</c> itself): the liveness check is
+    /// registered once per <see cref="AltinnHealthCheckOptions.SelfCheckName"/>, so repeated calls
+    /// from an app and its shared bootstrap code cannot collide.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Optional callback to configure the convention.</param>
@@ -27,22 +28,19 @@ public static class HealthCheckServiceCollectionExtensions
         configure?.Invoke(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.SelfCheckName, nameof(options.SelfCheckName));
 
-        var builder = services.AddHealthChecks();
-
         // Registering the liveness check twice would make MapAltinnHealthChecks throw
         // "Duplicate health checks were registered..." while mapping — HealthCheckService is
-        // resolved there, so it is a hard startup failure, not a per-request one. Guard with a
-        // marker to keep repeated calls (app + shared bootstrap code) harmless.
-        if (!services.Any(d => d.ServiceType == typeof(AltinnHealthChecksMarker)))
-        {
-            services.AddSingleton<AltinnHealthChecksMarker>();
-            builder.AddCheck(options.SelfCheckName, () => HealthCheckResult.Healthy(), tags: [HealthCheckTags.Self]);
-        }
+        // resolved there, so it is a hard startup failure, not a per-request one. TryAddHealthCheck
+        // keeps repeated calls (app + shared bootstrap code) harmless.
+        services.TryAddHealthCheck(
+            options.SelfCheckName,
+            builder => builder.AddCheck(
+                options.SelfCheckName,
+                () => HealthCheckResult.Healthy(),
+                tags: [HealthCheckTags.Live]));
 
-        return builder;
+        return services.AddHealthChecks();
     }
-
-    private sealed class AltinnHealthChecksMarker;
 }
 
 /// <summary>Configures the Altinn health check convention's own registrations.</summary>
