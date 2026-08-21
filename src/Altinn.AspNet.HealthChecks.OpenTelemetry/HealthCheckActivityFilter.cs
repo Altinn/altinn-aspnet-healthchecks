@@ -37,7 +37,7 @@ public sealed class HealthCheckActivityFilter : BaseProcessor<Activity>
     /// <summary>
     /// Creates the filter. When no suffixes are supplied, the defaults cover the five endpoints
     /// mapped by <c>MapAltinnHealthChecks()</c> from the <c>Altinn.AspNet.HealthChecks</c> package:
-    /// <c>/health</c>, <c>/health/liveness</c>, <c>/health/readiness</c>, <c>/health/startup</c>
+    /// <c>/alive</c>, <c>/health</c>, <c>/health/readiness</c>, <c>/health/startup</c>
     /// and <c>/health/deep</c>.
     /// </summary>
     /// <remarks>
@@ -50,7 +50,7 @@ public sealed class HealthCheckActivityFilter : BaseProcessor<Activity>
     {
         _explicitSuffixes = suppressedRouteSuffixes is { Length: > 0 }
             ? suppressedRouteSuffixes
-            : ["/health", "/health/liveness", "/health/readiness", "/health/startup", "/health/deep"];
+            : ["/alive", "/health", "/health/readiness", "/health/startup", "/health/deep"];
     }
 
     /// <summary>

@@ -20,9 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Reference implementation of the HealthChecks UI JSON format; used only to verify
-         that HealthCheckJsonResponseWriter stays byte-identical to it. -->
-    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />

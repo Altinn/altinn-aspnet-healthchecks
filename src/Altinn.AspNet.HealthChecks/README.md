@@ -23,17 +23,56 @@ so you register a check once (with tags) and it surfaces on the right endpoints:
 
 | Path                 | Includes checks tagged            | Intended probe            |
 |----------------------|-----------------------------------|---------------------------|
-| `/health/liveness`   | `self`                            | Liveness (process only)   |
+| `/alive`             | `live`                            | Liveness (process only)   |
 | `/health/readiness`  | `critical` or `warmup`            | Readiness / de-pooling    |
 | `/health/startup`    | `dependencies`                    | Startup                   |
 | `/health`            | `dependencies`                    | Dashboard / humans        |
 | `/health/deep`       | `dependencies` or `external`      | Deep probe (outbound)     |
 
-All endpoints emit the de-facto standard HealthChecks UI JSON (the format understood by the
-[HealthChecks UI](https://github.com/xabaril/aspnetcore.diagnostics.healthchecks) dashboard),
-so `/health/deep` is structurally identical to the Dialogporten reference deployment. The
-writer is implemented in this package (`HealthCheckJsonResponseWriter`, verified byte-identical
-to `AspNetCore.HealthChecks.UI.Client`) — hence the zero dependencies.
+`/alive` and `/health` are the paths the Microsoft/Aspire service-defaults scaffolding uses, so
+these are the endpoints an Altinn Kubernetes deployment already probes. The tag on the liveness
+endpoint is `live` for the same reason: a check registered as `AddCheck("self", …, ["live"])`
+surfaces there without retagging. Every path is overridable — see
+[Customising the endpoints](#customising-the-endpoints).
+
+## Response format
+
+Endpoints answer `application/vnd.altinn.health.v1+json`:
+
+```json
+{
+  "status": "healthy",
+  "totalDuration": "00:00:00.0412000",
+  "entries": {
+    "postgres": {
+      "status": "healthy",
+      "duration": "00:00:00.0070000",
+      "description": "up",
+      "data": { "pool": "primary" },
+      "tags": ["dependencies", "critical"]
+    }
+  }
+}
+```
+
+A vendor media type, so the shape can be versioned independently of the package. A client asking
+for plain `application/json` gets this too — a `+json` type is a subset of it — so nothing needs
+to know the vendor type exists. Everything past `status` and `duration` is omitted when absent or
+withheld: see [Detail levels](#detail-levels).
+
+Ask for `text/plain` instead and the body is the overall status as one lowercase word, which is
+all a human wants from a `curl`:
+
+```console
+$ curl -s -H 'Accept: text/plain' localhost:5199/health
+healthy
+```
+
+Negotiation follows the `Accept` header's quality values. A request that expresses no usable
+preference — no header at all, `*/*`, or nothing on offer — gets JSON. Nothing ever returns 406:
+the status code already carries the health signal, and replacing a 503 with a 406 would throw away
+the only thing the caller came for. Add your own format by putting a `HealthReportFormatter` on
+`Formatters`.
 
 ## Quick start
 
@@ -76,7 +115,7 @@ app.MapAltinnHealthChecks();
 app.Run();
 ```
 
-Use the constants in `HealthCheckTags` (`Self`, `Dependencies`, `Critical`, `Warmup`,
+Use the constants in `HealthCheckTags` (`Live`, `Dependencies`, `Critical`, `Warmup`,
 `External`) to decide where each check appears. Follow the **severity-by-consequence** rule:
 return `Unhealthy` only when restarting/de-pooling the instance helps; return `Degraded` for
 dependencies you can tolerate (cache miss, buffered outbox, optional lookups).
@@ -88,6 +127,21 @@ yours:
 ```csharp
 builder.Services.AddAltinnHealthChecks(o => o.SelfCheckName = "process-self");
 ```
+
+If you are writing a *library* that registers a check for shared infrastructure, claim the name
+instead of registering it outright, so two libraries wiring up the same dependency cannot fail the
+app's startup:
+
+```csharp
+builder.Services.TryAddHealthCheck("PostgreSql", checks => checks.AddNpgSql(
+    sp => sp.GetRequiredService<NpgsqlDataSource>(),
+    name: "PostgreSql",
+    tags: [HealthCheckTags.Dependencies, HealthCheckTags.Critical]));
+```
+
+First registration wins, and the callback is skipped entirely if the name is taken. Only names
+claimed through `TryAddHealthCheck` are tracked — a check added directly to `AddHealthChecks()`
+will still collide.
 
 ### Customising the endpoints
 
@@ -109,40 +163,56 @@ app.MapAltinnHealthChecks(o =>
 same content. Point a platform startup probe at `/health/startup` and humans at `/health`; the
 split exists so you can move or disable one without disturbing the other.
 
-### Exception details on public endpoints
+### Detail levels
 
-`/health/deep` includes each failing entry's exception message by default, matching the
-HealthChecks UI format byte for byte. Those messages routinely carry connection strings,
-hostnames and credentials.
+Health endpoints leak. Exception messages routinely carry connection strings, hostnames and
+credentials — and when a check *throws*, the health check service uses the exception message as
+the entry's description, so suppressing only the `exception` field would publish it anyway. A
+check's `data` is whatever that check felt like publishing: MassTransit's bus-state check reports
+the broker host address and every queue name it knows, while perfectly healthy.
 
-```csharp
-app.MapAltinnHealthChecks(o => o.IncludeExceptionDetails = builder.Environment.IsDevelopment());
-```
+So how much of a report reaches the body is one dial, `DetailLevel`:
 
-Turning it off omits the `exception` field **and** the description whenever an exception is
-present — when a check throws, the health check service uses the exception message as the entry's
-description, so suppressing only the one field would still leak it. The body then no longer
-matches the UI format. A future major version will default this to off.
+| Level        | status, durations | `tags` | `description`            | `data`         | `exception.message` | `stackTrace`, `innerException` |
+|--------------|:-----------------:|:------:|--------------------------|:--------------:|:-------------------:|:------------------------------:|
+| `Minimal`    | ✔                 |        |                          |                |                     |                                |
+| `Summary`    | ✔                 | ✔      | only if no exception     |                |                     |                                |
+| `Diagnostic` | ✔                 | ✔      | ✔                        | ✔ if non-empty | ✔                   |                                |
+| `Full`       | ✔                 | ✔      | ✔                        | ✔ if non-empty | ✔                   | ✔                              |
 
-### Entry data on public endpoints
+Left unset — the default — it follows `IHostEnvironment`:
 
-Each entry also carries the `data` dictionary its check chose to publish, and a third-party check
-may put more there than you would. MassTransit's bus-state check, for example, reports the broker
-host address and the queue names it knows — while perfectly healthy, so `IncludeExceptionDetails`
-never comes into it.
+| Environment                    | Level        |
+|--------------------------------|--------------|
+| `Development`                  | `Full`       |
+| `Production`                   | `Summary`    |
+| anything else (`Staging`, `at22`, …) | `Diagnostic` |
+
+That is usually the whole configuration: a production body carries no secrets without the app
+having to say so, and development still shows stack traces. Override it to loosen an endpoint that
+is not publicly reachable:
 
 ```csharp
 app.MapAltinnHealthChecks(o =>
 {
-    o.IncludeExceptionDetails = builder.Environment.IsDevelopment();
-    o.IncludeData = builder.Environment.IsDevelopment();
+    o.Deep.Configure = endpoint => endpoint.RequireHost("localhost");
+    o.DetailLevel = HealthReportDetailLevel.Full;
 });
 ```
 
-With `IncludeData = false` every entry still carries a `data` object, just an empty one, so the
-body remains valid HealthChecks UI JSON — an empty `data` is what the format emits for a check that
-reports none. Turn it off wherever a health endpoint faces something you do not trust, and keep it
-on in development, where the data is the diagnostic.
+The level applies to every mapped endpoint. If you need one endpoint more revealing than the rest,
+map it yourself with its own `HealthReportResponseWriter`.
+
+### HTTP metrics
+
+Kubernetes probes these endpoints every few seconds forever, which is enough to dominate
+`http.server.request.duration` without saying anything about how the app serves real traffic. So
+the mapped endpoints are excluded from HTTP metrics by default; set `DisableHttpMetrics = false` to
+keep them. (No effect on `net8.0`, where the underlying `DisableHttpMetrics()` does not exist.)
+
+Trace spans are the other half, and are suppressed separately by the
+[`OpenTelemetry`](https://www.nuget.org/packages/Altinn.AspNet.HealthChecks.OpenTelemetry)
+companion package.
 
 ### Config-driven outbound probes
 

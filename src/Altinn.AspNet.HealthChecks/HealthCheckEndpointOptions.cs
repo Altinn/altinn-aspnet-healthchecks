@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
 
 namespace Altinn.AspNet.HealthChecks;
 
 /// <summary>
 /// Configures the endpoints mapped by
 /// <see cref="HealthCheckEndpointRouteBuilderExtensions.MapAltinnHealthChecks(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder, HealthCheckEndpointOptions)"/>.
-/// Defaults reproduce the Dialogporten endpoint layout, so <c>/health/deep</c> is structurally
-/// identical to the reference deployment.
+/// The default <c>/alive</c> and <c>/health</c> paths match the Microsoft/Aspire service-defaults
+/// scaffolding, so the endpoints Kubernetes probes are where an Altinn deployment already expects
+/// them.
 /// </summary>
 /// <remarks>
 /// Build one instance and pass it to both <c>MapAltinnHealthChecks</c> and
@@ -15,8 +17,8 @@ namespace Altinn.AspNet.HealthChecks;
 /// </remarks>
 public sealed class HealthCheckEndpointOptions
 {
-    /// <summary>Liveness probe. Includes checks tagged <see cref="HealthCheckTags.Self"/>.</summary>
-    public HealthEndpoint Liveness { get; } = new("/health/liveness");
+    /// <summary>Liveness probe. Includes checks tagged <see cref="HealthCheckTags.Live"/>.</summary>
+    public HealthEndpoint Liveness { get; } = new("/alive");
 
     /// <summary>
     /// Readiness probe. Includes checks tagged <see cref="HealthCheckTags.Critical"/>
@@ -40,34 +42,58 @@ public sealed class HealthCheckEndpointOptions
     public HealthEndpoint Deep { get; } = new("/health/deep");
 
     /// <summary>
-    /// Whether the response body includes each entry's exception message, and falls back to it
-    /// for a missing description. Defaults to <see langword="true"/>, matching
-    /// <c>AspNetCore.HealthChecks.UI.Client</c> byte for byte.
+    /// How much of each report reaches the response body. Leave <see langword="null"/> — the
+    /// default — to derive it from <see cref="IHostEnvironment"/>:
+    /// <list type="bullet">
+    /// <item><description>Development → <see cref="HealthReportDetailLevel.Full"/></description></item>
+    /// <item><description>Production → <see cref="HealthReportDetailLevel.Summary"/></description></item>
+    /// <item><description>anything else (Staging, at22, …) → <see cref="HealthReportDetailLevel.Diagnostic"/></description></item>
+    /// </list>
     /// </summary>
     /// <remarks>
-    /// Exception messages routinely carry connection strings, hostnames and credentials. Set this
-    /// to <see langword="false"/> wherever a health endpoint is reachable by anything you do not
-    /// trust — a public ingress or API gateway, say — accepting that the body then diverges from
-    /// the HealthChecks UI format. A future major version will default this to
-    /// <see langword="false"/>.
+    /// The environment is read when the endpoints are mapped. Where no
+    /// <see cref="IHostEnvironment"/> is registered the fallback is
+    /// <see cref="HealthReportDetailLevel.Summary"/> — health endpoints leak, so the unknown case
+    /// resolves to the quiet one. Set this explicitly to override, most often to loosen a
+    /// production endpoint that sits behind <c>RequireHost</c> or <c>RequireAuthorization</c>.
     /// </remarks>
-    public bool IncludeExceptionDetails { get; set; } = true;
+    public HealthReportDetailLevel? DetailLevel { get; set; }
 
     /// <summary>
-    /// Whether the response body includes each entry's <c>data</c> contents. Defaults to
-    /// <see langword="true"/>, matching <c>AspNetCore.HealthChecks.UI.Client</c>. When
-    /// <see langword="false"/>, every entry still carries a <c>data</c> object, but an empty one.
+    /// The response formatters, in preference order. The first is used when a request expresses no
+    /// usable preference — no <c>Accept</c> header, <c>*/*</c>, or nothing this list can satisfy.
+    /// Defaults to JSON then plain text.
     /// </summary>
     /// <remarks>
-    /// A check decides for itself what to put in its data, and a third-party check may put more
-    /// there than you would: MassTransit's bus-state check, for example, reports the broker's
-    /// host address and every queue name it knows. Unlike <see cref="IncludeExceptionDetails"/>
-    /// this is not about failures — the data is published while everything is healthy — so it is a
-    /// separate switch, and worth turning off wherever a health endpoint faces something you do
-    /// not trust. Keeping the (empty) <c>data</c> object means the body still parses as the
-    /// HealthChecks UI format.
+    /// Mutate to change the outcome: <c>Formatters.Insert(0, myFormatter)</c> to prefer your own
+    /// format, <c>Formatters.RemoveAt(1)</c> to stop answering <c>text/plain</c> at all. A
+    /// formatter appended at the end still serves its own media type when a client asks for it by
+    /// name; only the no-preference case follows the order.
     /// </remarks>
-    public bool IncludeData { get; set; } = true;
+    public IList<HealthReportFormatter> Formatters { get; } =
+    [
+        HealthReportJsonFormatter.Instance,
+        HealthReportTextFormatter.Instance,
+    ];
+
+    /// <summary>
+    /// Whether the mapped endpoints are excluded from ASP.NET Core's HTTP request metrics.
+    /// Defaults to <see langword="true"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Kubernetes probes every endpoint here every few seconds forever. Left in, they dominate
+    /// <c>http.server.request.duration</c> and the request-rate counters without ever saying
+    /// anything about how the app is serving real traffic.
+    /// </para>
+    /// <para>
+    /// This is the metrics half of the story; trace spans are suppressed separately by
+    /// <c>AddHealthCheckActivityFilter</c> in the <c>Altinn.AspNet.HealthChecks.OpenTelemetry</c>
+    /// package. No effect on net8.0, where <c>DisableHttpMetrics</c> does not exist and the
+    /// metrics middleware would not honour it.
+    /// </para>
+    /// </remarks>
+    public bool DisableHttpMetrics { get; set; } = true;
 
     /// <summary>
     /// All five endpoints, in declaration order. Useful for deriving other configuration from the

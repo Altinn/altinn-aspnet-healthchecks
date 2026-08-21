@@ -41,7 +41,7 @@ public sealed class HealthCheckActivityFilterTests : IDisposable
 
     [Theory]
     [InlineData("/health")]
-    [InlineData("/health/liveness")]
+    [InlineData("/alive")]
     [InlineData("/health/readiness")]
     [InlineData("/health/startup")]
     [InlineData("/health/deep")]
@@ -132,7 +132,7 @@ public sealed class HealthCheckActivityFilterTests : IDisposable
         Assert.Empty(_exporter.Exported);
 
         // Still covers the endpoints left at their defaults.
-        EmitServerSpan(_aspNetCoreSource, "http.route", "/health/liveness");
+        EmitServerSpan(_aspNetCoreSource, "http.route", "/alive");
         Assert.Empty(_exporter.Exported);
     }
 
