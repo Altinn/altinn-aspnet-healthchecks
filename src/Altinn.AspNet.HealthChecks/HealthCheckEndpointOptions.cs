@@ -56,6 +56,8 @@ public sealed class HealthCheckEndpointOptions
     /// <see cref="HealthReportDetailLevel.Summary"/> — health endpoints leak, so the unknown case
     /// resolves to the quiet one. Set this explicitly to override, most often to loosen a
     /// production endpoint that sits behind <c>RequireHost</c> or <c>RequireAuthorization</c>.
+    /// A value outside the declared levels is rejected when the endpoints are mapped, rather than
+    /// clearing every gate and behaving as <see cref="HealthReportDetailLevel.Full"/>.
     /// </remarks>
     public HealthReportDetailLevel? DetailLevel { get; set; }
 

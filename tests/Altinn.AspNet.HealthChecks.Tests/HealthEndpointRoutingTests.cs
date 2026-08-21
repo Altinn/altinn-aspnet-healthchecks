@@ -2,6 +2,10 @@ using System.Text.Json;
 using Altinn.AspNet.HealthChecks.Warmup;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+#if NET9_0_OR_GREATER
+using Microsoft.AspNetCore.Http.Metadata;
+using Microsoft.AspNetCore.Routing;
+#endif
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -311,6 +315,41 @@ public class HealthEndpointRoutingTests
         Assert.Equal("text/plain", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal("healthy", await response.Content.ReadAsStringAsync(cancellationToken));
     }
+
+#if NET9_0_OR_GREATER
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Http_metrics_suppression_follows_the_option(bool disableHttpMetrics)
+    {
+        // The failure mode is silent — a target-framework guard or a wiring regression puts probe
+        // traffic back into http.server.request.duration with nothing to see in a response.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var app = BuildApp(configureEndpoints: o => o.DisableHttpMetrics = disableHttpMetrics);
+        await app.StartAsync(cancellationToken);
+
+        var endpoints = app.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(endpoint => endpoint.RoutePattern.RawText is "/alive" or "/health"
+                or "/health/readiness" or "/health/startup" or "/health/deep")
+            .ToList();
+
+        Assert.Equal(5, endpoints.Count);
+        Assert.All(endpoints, endpoint =>
+        {
+            var metadata = endpoint.Metadata.GetMetadata<IDisableHttpMetricsMetadata>();
+
+            if (disableHttpMetrics)
+            {
+                Assert.NotNull(metadata);
+            }
+            else
+            {
+                Assert.Null(metadata);
+            }
+        });
+    }
+#endif
 
     [Fact]
     public async Task Readiness_gates_on_warmup_then_recovers()

@@ -32,6 +32,21 @@ public sealed class HealthReportResponseWriterTests
     }
 
     [Theory]
+    [InlineData(4)]
+    [InlineData(-1)]
+    public void Rejects_a_detail_level_outside_the_ladder(int level)
+    {
+        // Every gate is level >= X, so an undefined value would clear all of them and publish
+        // stack traces and check data as if Full had been asked for.
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new HealthReportResponseWriter(
+                (HealthReportDetailLevel)level,
+                [HealthReportJsonFormatter.Instance]));
+
+        Assert.Equal("detailLevel", exception.ParamName);
+    }
+
+    [Theory]
     // No preference at all, which is what a kubelet probe sends.
     [InlineData(null, Json)]
     [InlineData("*/*", Json)]
@@ -50,6 +65,14 @@ public sealed class HealthReportResponseWriterTests
     [InlineData("application/json, text/plain", Json)]
     // A browser: text/html first, then */* — which the JSON formatter answers.
     [InlineData("text/html,application/xhtml+xml,*/*;q=0.8", Json)]
+    // A type carved out of a range that would otherwise cover it. Acceptability comes from the
+    // most specific matching range, so the exclusion beats the wildcard that found it — including
+    // when the wildcard is the higher-quality and earlier-listed of the two.
+    [InlineData("application/*;q=0.9, " + Json + ";q=0, text/plain;q=0.8", "text/plain; charset=utf-8")]
+    [InlineData("*/*, " + Json + ";q=0", "text/plain; charset=utf-8")]
+    [InlineData("*/*;q=0.5, text/plain;q=0", Json)]
+    // application/*+json is more specific than application/*, so it is the one that decides.
+    [InlineData("application/*+json;q=0, application/*;q=0.9, text/plain;q=0.1", "text/plain; charset=utf-8")]
     public async Task Negotiates_the_content_type(string? accept, string expectedContentType)
     {
         var context = await Write(Default(), accept);
@@ -64,6 +87,8 @@ public sealed class HealthReportResponseWriterTests
     // already set 200 or 503, and a 406 would throw away the only thing the caller came for.
     [InlineData("*/*;q=0")]
     [InlineData("application/json;q=0, text/plain;q=0")]
+    // Both formats carved out of a wildcard that would otherwise have covered them.
+    [InlineData("*/*, " + Json + ";q=0, text/plain;q=0")]
     // Unparseable headers must not fault the endpoint a load balancer is polling.
     [InlineData("%%%")]
     [InlineData("")]
