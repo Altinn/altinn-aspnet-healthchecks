@@ -32,10 +32,7 @@
   -->
   <PropertyGroup>
     <EnablePackageValidation>true</EnablePackageValidation>
-    <!-- Cleared: this release intentionally breaks 0.2.0 (response format, /alive, HealthCheckTags.Live,
-         HealthReportDetailLevel replacing IncludeExceptionDetails/IncludeData). Re-point this to the
-         version that ships, immediately after it ships. -->
-    <PackageValidationBaselineVersion></PackageValidationBaselineVersion>
+    <PackageValidationBaselineVersion>0.3.0</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <ItemGroup>
