@@ -55,7 +55,8 @@ else
 }
 
 // 5. Opt in to startup warmup. Readiness stays 503 until the phase completes.
-//    Enabled/Timeout bind from the "Warmup" section; phases are always code.
+//    Enabled/Timeout/Retry bind from the "Warmup" section; phases are always code.
+//    A failed phase is retried with backoff until it succeeds, so make phases idempotent.
 //    WARMUP_SECS lets you make the readiness gate observable when probing the sample.
 var warmupSeconds = Math.Max(0, builder.Configuration.GetValue("WARMUP_SECS", 2));
 builder.Services.AddWarmup(builder.Configuration.GetSection("Warmup"), warmup =>

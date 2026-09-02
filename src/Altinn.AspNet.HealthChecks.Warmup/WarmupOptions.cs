@@ -5,9 +5,9 @@ namespace Altinn.AspNet.HealthChecks.Warmup;
 /// Unhealthy until all non-optional phases complete.
 /// </summary>
 /// <remarks>
-/// <see cref="Enabled"/> and <see cref="TimeoutSeconds"/> bind from configuration — see the
-/// <c>AddWarmup(IServiceCollection, IConfiguration, Action{WarmupOptions})</c> overload.
-/// <see cref="Phases"/> is deliberately code-only: a phase is a delegate, not a config value.
+/// <see cref="Enabled"/>, <see cref="TimeoutSeconds"/> and <see cref="Retry"/> bind from
+/// configuration — see the <c>AddWarmup(IServiceCollection, IConfiguration, Action{WarmupOptions})</c>
+/// overload. <see cref="Phases"/> is deliberately code-only: a phase is a delegate, not a config value.
 /// </remarks>
 public sealed class WarmupOptions
 {
@@ -19,12 +19,22 @@ public sealed class WarmupOptions
     public bool Enabled { get; set; } = true;
 
     /// <summary>
-    /// Time budget in seconds shared by all phases. Defaults to 60, and must be between 1 and
-    /// 3600 — warmup needing longer than a minute or two is usually work that belongs somewhere
-    /// other than a readiness gate, and the ceiling catches a transposed digit that would
-    /// otherwise hold readiness at 503 for weeks in silence.
+    /// Time budget in seconds shared by all phases of a single attempt. Defaults to 60, and must
+    /// be between 1 and 3600 — warmup needing longer than a minute or two is usually work that
+    /// belongs somewhere other than a readiness gate, and the ceiling catches a transposed digit
+    /// that would otherwise hold readiness at 503 for weeks in silence.
     /// </summary>
+    /// <remarks>
+    /// This bounds one attempt, not the lifetime of the warmup: an attempt that overruns it is a
+    /// failure like any other, and is retried according to <see cref="Retry"/>.
+    /// </remarks>
     public int TimeoutSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// How a failed attempt is retried. Retrying is on by default — see
+    /// <see cref="WarmupRetryOptions.MaxAttempts"/> for how to turn it off.
+    /// </summary>
+    public WarmupRetryOptions Retry { get; } = new();
 
     /// <summary>The registered phases, run in order.</summary>
     public IList<IWarmupPhase> Phases { get; } = [];

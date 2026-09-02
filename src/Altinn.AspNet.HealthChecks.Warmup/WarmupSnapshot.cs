@@ -17,6 +17,16 @@ public sealed record WarmupSnapshot(
     public static WarmupSnapshot Pending { get; } =
         new(WarmupStatus.Pending, CurrentPhase: null, FailedPhase: null, Exception: null);
 
+    /// <summary>
+    /// Which attempt is running, counting from 1, or 0 before the first attempt starts.
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="WarmupStatus.Pending"/> snapshot past attempt 1 is a retry in flight, and it
+    /// keeps <see cref="FailedPhase"/> and <see cref="Exception"/> from the attempt before it —
+    /// so the readiness endpoint can still say what went wrong while the next attempt runs.
+    /// </remarks>
+    public int Attempt { get; init; }
+
     /// <summary>Whether warmup has completed successfully.</summary>
     public bool IsWarmupComplete => Status == WarmupStatus.Healthy;
 }
