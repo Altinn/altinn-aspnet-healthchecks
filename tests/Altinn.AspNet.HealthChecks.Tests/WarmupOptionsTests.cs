@@ -124,8 +124,12 @@ public class WarmupOptionsTests
     public async Task Required_phase_timing_out_fails_readiness_naming_the_phase()
     {
         using var host = BuildHost(services => services.AddWarmup(warmup =>
-            warmup.AddPhase("db-pool", (_, ct) => Task.Delay(Timeout.Infinite, ct),
-                timeoutSeconds: 1)));
+        {
+            // One attempt, so the assertion below observes a state that stays put. Retrying is
+            // covered in WarmupRetryTests.
+            warmup.Retry.MaxAttempts = 1;
+            warmup.AddPhase("db-pool", (_, ct) => Task.Delay(Timeout.Infinite, ct), timeoutSeconds: 1);
+        }));
 
         await host.StartAsync(TestContext.Current.CancellationToken);
 
@@ -140,5 +144,62 @@ public class WarmupOptionsTests
         Assert.Equal("db-pool", snapshot.FailedPhase);
 
         await host.StopAsync(TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public void Retry_binds_from_configuration()
+    {
+        using var host = BuildHost(services => services.AddWarmup(Config(
+            ("Warmup:Retry:MaxAttempts", "5"),
+            ("Warmup:Retry:InitialDelaySeconds", "3"),
+            ("Warmup:Retry:MaxDelaySeconds", "9")).GetSection("Warmup")));
+
+        var retry = host.Services.GetRequiredService<IOptions<WarmupOptions>>().Value.Retry;
+
+        Assert.Equal(5, retry.MaxAttempts);
+        Assert.Equal(3, retry.InitialDelaySeconds);
+        Assert.Equal(9, retry.MaxDelaySeconds);
+    }
+
+    [Fact]
+    public void Retry_defaults_to_retrying_indefinitely()
+    {
+        using var host = BuildHost(services => services.AddWarmup(warmup =>
+            warmup.AddPhase("noop", (_, _) => Task.CompletedTask)));
+
+        var retry = host.Services.GetRequiredService<IOptions<WarmupOptions>>().Value.Retry;
+
+        // 0 is "for as long as the host runs": an instance that cannot warm up is out of traffic
+        // either way, so giving up would only remove the chance of recovering unattended.
+        Assert.Equal(0, retry.MaxAttempts);
+    }
+
+    [Theory]
+    [InlineData("Warmup:Retry:MaxAttempts", "-1", nameof(WarmupRetryOptions.MaxAttempts))]
+    [InlineData("Warmup:Retry:InitialDelaySeconds", "0", nameof(WarmupRetryOptions.InitialDelaySeconds))]
+    [InlineData("Warmup:Retry:MaxDelaySeconds", "86400", nameof(WarmupRetryOptions.MaxDelaySeconds))]
+    public async Task Invalid_retry_configuration_fails_host_startup(string key, string value, string expectedInMessage)
+    {
+        using var host = BuildHost(services => services.AddWarmup(Config((key, value)).GetSection("Warmup")));
+
+        var ex = await Assert.ThrowsAsync<OptionsValidationException>(
+            () => host.StartAsync(TestContext.Current.CancellationToken));
+
+        Assert.Contains(expectedInMessage, ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Retry_cap_below_the_initial_delay_fails_host_startup()
+    {
+        // Not merely odd: it would silently flatten every backoff to the cap, which reads as the
+        // backoff not working at all.
+        using var host = BuildHost(services => services.AddWarmup(Config(
+            ("Warmup:Retry:InitialDelaySeconds", "30"),
+            ("Warmup:Retry:MaxDelaySeconds", "10")).GetSection("Warmup")));
+
+        var ex = await Assert.ThrowsAsync<OptionsValidationException>(
+            () => host.StartAsync(TestContext.Current.CancellationToken));
+
+        Assert.Contains(nameof(WarmupRetryOptions.MaxDelaySeconds), ex.Message, StringComparison.Ordinal);
     }
 }

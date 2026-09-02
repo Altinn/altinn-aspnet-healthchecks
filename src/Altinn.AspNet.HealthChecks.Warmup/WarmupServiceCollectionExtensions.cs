@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.AspNet.HealthChecks.Warmup;
@@ -12,7 +13,8 @@ public static class WarmupServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the warmup <see cref="WarmupState"/>, the hosted service that runs the
-    /// configured phases, and a readiness health check tagged <see cref="HealthCheckTags.Warmup"/>.
+    /// configured phases and retries a failed attempt, and a readiness health check tagged
+    /// <see cref="HealthCheckTags.Warmup"/>.
     /// Safe to call more than once: every <paramref name="configure"/> callback is applied
     /// (in call order), while the services and the <c>warmup</c> check are only registered once.
     /// </summary>
@@ -29,8 +31,8 @@ public static class WarmupServiceCollectionExtensions
 
     /// <summary>
     /// As <see cref="AddWarmup(IServiceCollection, Action{WarmupOptions})"/>, but binds
-    /// <see cref="WarmupOptions.Enabled"/> and <see cref="WarmupOptions.TimeoutSeconds"/> from
-    /// <paramref name="configuration"/> first. Phases are always code, so they come from
+    /// <see cref="WarmupOptions.Enabled"/>, <see cref="WarmupOptions.TimeoutSeconds"/> and
+    /// <see cref="WarmupOptions.Retry"/> from <paramref name="configuration"/> first. Phases are always code, so they come from
     /// <paramref name="configure"/>.
     /// </summary>
     /// <param name="services">The service collection.</param>
@@ -78,6 +80,9 @@ public static class WarmupServiceCollectionExtensions
         }
 
         services.AddSingleton<WarmupState>();
+        // Only for the retry backoff, and TryAdd so a host that registers its own (a test
+        // with a fake clock, say) keeps it.
+        services.TryAddSingleton(TimeProvider.System);
         services.AddHostedService<WarmupHostedService>();
         services.AddSingleton<IValidateOptions<WarmupOptions>, WarmupOptionsValidator>();
 

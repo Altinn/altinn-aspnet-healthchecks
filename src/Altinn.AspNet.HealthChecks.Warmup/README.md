@@ -28,19 +28,49 @@ builder.Services.AddWarmup(builder.Configuration.GetSection("Warmup"), warmup =>
 ```
 
 ```json
-{ "Warmup": { "Enabled": true, "TimeoutSeconds": 60 } }
+{
+  "Warmup": {
+    "Enabled": true,
+    "TimeoutSeconds": 60,
+    "Retry": { "MaxAttempts": 0, "InitialDelaySeconds": 2, "MaxDelaySeconds": 60 }
+  }
+}
 ```
 
-`Enabled` and `TimeoutSeconds` bind from the section you pass; phases are always code. You supply the
+`Enabled`, `TimeoutSeconds` and `Retry` bind from the section you pass; phases are always code. You supply the
 section yourself — the package never invents a key name, because an Altinn app's configuration
 may come from Azure App Configuration, where a section absent from every `appsettings.json` is
 not evidence the key is unset. There is also an `AddWarmup(warmup => …)` overload with no
 configuration.
 
-Phases run in order on startup, sharing a single DI scope created for the warmup run.
-Non-optional phase failure → readiness `Unhealthy`; `optional: true` phases log-and-continue.
+Phases run in order on startup, sharing a single DI scope created for the attempt.
+Non-optional phase failure → readiness `Unhealthy`, and the attempt is retried; `optional: true`
+phases log-and-continue and never cause a retry.
 
-`TimeoutSeconds` (default 60) is the budget for the **whole run**. A phase-level
+## Retrying
+
+A failed attempt is retried by default, for as long as the host runs, with exponential backoff
+from `InitialDelaySeconds` up to `MaxDelaySeconds`, jittered. Readiness reports `Unhealthy`
+throughout, which is the point: the instance stays out of traffic until it is genuinely warm.
+
+This is not a nicety. The failures warmup hits are usually transient — a DNS hiccup, a database a
+second from accepting connections — and they tend to hit every instance a deploy creates at once.
+A failed readiness probe is not a restart signal to Kubernetes or Container Apps: the instance is
+taken out of load balancing and left running, and it still counts toward `minReplicas`, so nothing
+replaces it either. Without a retry, a blip lasting seconds costs you that instance for as long as
+it lives.
+
+The backoff is jittered (half fixed, half random) for the same reason: unjittered, every instance
+of the deploy would retry in lockstep against whatever is still recovering.
+
+Retries re-run **the whole phase set** from the start, in a new scope — a phase may depend on one
+before it, and the scope they shared is gone. So **phases must be idempotent**. The new scope is
+deliberate: whatever the failed attempt left faulted in the old one must not be handed to the retry.
+
+`MaxAttempts` counts attempts in total, including the first. `0` (the default) means retry
+indefinitely; `1` disables retrying and restores single-shot behaviour.
+
+`TimeoutSeconds` (default 60) is the budget for **one attempt**. A phase-level
 `timeoutSeconds:` is layered underneath it: without one, a slow optional phase can eat the entire
 run budget and starve a later required phase, which then fails readiness while naming the wrong
 phase. Both must be between 1 and 3600, validated at host startup — a bad value is a clear boot
@@ -56,11 +86,22 @@ to whatever the phase actually calls.
 configuration is not validated, so a bad timeout cannot block startup on a subsystem that is
 switched off.
 
+## Reading the state
+
+`WarmupState.GetSnapshot()` returns the status, the current phase, the attempt number, and the
+phase and exception of the last failure. A `Pending` snapshot past attempt 1 is a retry in flight,
+and it keeps the previous failure so the readiness endpoint can still say what went wrong.
+
 ## How it plugs in
 
-`AddWarmup` registers a hosted service that runs the phases, and a health check tagged
-`warmup` — the tag `MapAltinnHealthChecks()` routes onto the readiness endpoint. It works
-with any `MapHealthChecks` setup whose readiness predicate includes the `warmup` tag.
+`AddWarmup` registers a hosted service that runs the phases and retries a failed attempt, and a
+health check tagged `warmup` — the tag `MapAltinnHealthChecks()` routes onto the readiness
+endpoint. It works with any `MapHealthChecks` setup whose readiness predicate includes the
+`warmup` tag.
+
+The health check is a pure read of the warmup state: probing it never starts warmup work, so probe
+frequency has no bearing on how often the phases run. The hosted service is the only thing that
+runs them, and only one attempt is ever in flight.
 
 ## Target frameworks
 

@@ -23,6 +23,26 @@ public sealed class WarmupState
     /// <summary>Returns an atomic, self-consistent view of the current warmup state.</summary>
     public WarmupSnapshot GetSnapshot() => Volatile.Read(ref _snapshot);
 
+    /// <summary>Records that an attempt has started, counting from 1.</summary>
+    /// <remarks>
+    /// A retry moves the status back to <see cref="WarmupStatus.Pending"/> — both statuses report
+    /// Unhealthy, so readiness does not flap — while deliberately keeping the previous attempt's
+    /// failed phase and exception. Losing them here would leave a retrying instance unable to say
+    /// anything about why it is not ready.
+    /// </remarks>
+    public void MarkAttemptStarted(int attempt)
+    {
+        lock (_lock)
+        {
+            Publish(_snapshot with
+            {
+                Status = WarmupStatus.Pending,
+                CurrentPhase = null,
+                Attempt = attempt
+            });
+        }
+    }
+
     /// <summary>Records that a phase has started running.</summary>
     public void MarkPhaseStarted(string phase)
     {
@@ -37,11 +57,13 @@ public sealed class WarmupState
     {
         lock (_lock)
         {
-            Publish(new WarmupSnapshot(
-                WarmupStatus.Healthy,
-                CurrentPhase: null,
-                FailedPhase: null,
-                Exception: null));
+            Publish(_snapshot with
+            {
+                Status = WarmupStatus.Healthy,
+                CurrentPhase = null,
+                FailedPhase = null,
+                Exception = null
+            });
         }
     }
 
@@ -50,11 +72,13 @@ public sealed class WarmupState
     {
         lock (_lock)
         {
-            Publish(new WarmupSnapshot(
-                WarmupStatus.Failed,
-                CurrentPhase: null,
-                FailedPhase: phase,
-                Exception: ex));
+            Publish(_snapshot with
+            {
+                Status = WarmupStatus.Failed,
+                CurrentPhase = null,
+                FailedPhase = phase,
+                Exception = ex
+            });
         }
     }
 
