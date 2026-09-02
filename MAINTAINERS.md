@@ -54,6 +54,12 @@ Renovate's path-based rules cannot tell a shipped dependency from a test one by 
 `renovate.json`.** Forgetting means its updates merge without cutting a release — recoverable
 (see "Forcing a release") but easy to miss.
 
+The same overlap cuts the other way for **lock file maintenance**. That branch refreshes every lock
+file in the repo at once, so the `src/**` rule matches it and would type a no-op refresh as `fix`,
+cutting a release of all four packages for a change no consumer can observe — lock files are not
+part of a `.nupkg`. The last rule in `renovate.json` pins `lockFileMaintenance` to `chore`, and it
+has to stay last to win. Keep new `fix(deps)` rules above it.
+
 ## What still needs you
 
 Everything else is automated; these three things are not, by design.

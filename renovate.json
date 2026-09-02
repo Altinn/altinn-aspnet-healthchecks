@@ -67,6 +67,12 @@
       "matchManagers": ["dotnet-sdk"],
       "automerge": false,
       "addLabels": ["needs-review"]
+    },
+    {
+      "description": "Lock file maintenance never warrants a release: a lock file is not part of any .nupkg, so refreshing transitive resolution changes nothing a consumer sees. It needs its own rule because the branch covers every lock file in the repo at once, which makes the src/** and shipped-dependency rules above match it and label a no-op refresh `fix`. Last in the list so it wins, and this is the rule to keep last.",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps"
     }
   ]
 }
