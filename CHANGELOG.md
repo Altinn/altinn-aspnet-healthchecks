@@ -2,6 +2,13 @@
 
 All packages in this repository share one version and are released together.
 
+## [0.4.0](https://github.com/Altinn/altinn-aspnet-healthchecks/compare/v0.3.0...v0.4.0) (2026-09-02)
+
+
+### Features
+
+* retry a failed readiness warmup with exponential backoff ([#14](https://github.com/Altinn/altinn-aspnet-healthchecks/issues/14)) ([6ce0965](https://github.com/Altinn/altinn-aspnet-healthchecks/commit/6ce09653cf8e37ad096ec9cbe9fda4a7f2f0698e))
+
 ## [0.3.0](https://github.com/Altinn/altinn-aspnet-healthchecks/compare/v0.2.0...v0.3.0) (2026-08-21)
 
 

@@ -15,7 +15,7 @@
     <RootNamespace>Altinn.AspNet.HealthChecks</RootNamespace>
     <!-- Default for local packs; CI overrides with -p:Version from the git tag.
          Kept in sync with the released version by release-please. -->
-    <Version>0.3.0</Version> <!-- x-release-please-version -->
+    <Version>0.4.0</Version> <!-- x-release-please-version -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
