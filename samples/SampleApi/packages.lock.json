@@ -31,14 +31,14 @@
       "altinn.aspnet.healthchecks.probes": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )",
           "AspNetCore.HealthChecks.Uris": "[9.0.0, )"
         }
       },
       "altinn.aspnet.healthchecks.warmup": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.1.0, )"
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )"
         }
       },
       "AspNetCore.HealthChecks.Uris": {
