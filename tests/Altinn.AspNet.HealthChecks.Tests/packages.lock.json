@@ -4,15 +4,15 @@
     "net10.0": {
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
-        "requested": "[10.0.0, )",
-        "resolved": "10.0.0",
-        "contentHash": "Q3ia+k+wYM3Iv/Qq5IETOdpz/R0xizs3WNAXz699vEQx5TMVAfG715fBSq9Thzopvx8dYZkxQ/mumTn6AJ/vGQ=="
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "IVGNbZVxLuL80y7cmXYfhIFoTGneHkp4D7xXarYe6V/wjo8/2qiSLUwWax1/h2eHtJ3Y5cuqmtpOyWMnXIsUMA=="
       },
       "Microsoft.Extensions.TimeProvider.Testing": {
         "type": "Direct",
-        "requested": "[10.8.0, )",
-        "resolved": "10.8.0",
-        "contentHash": "xXcxGfXSO/8o7IfYK36r3eZTl9RMKAl5K6x3x6o/QQBolI0t8vsLIGmhc3HJBTd11u1uPLHz61VnOTSTmY7ZVA=="
+        "requested": "[10.9.0, )",
+        "resolved": "10.9.0",
+        "contentHash": "0If8xc915BgRpYmKB9tOOOprvHMt8Tue6kiD8ARgVf8Ok6PNUxkJScKT7QUp7+RllR4RN2DNACgaxioy9BJxeQ=="
       },
       "xunit.runner.visualstudio": {
         "type": "Direct",
@@ -160,21 +160,21 @@
       "altinn.aspnet.healthchecks.opentelemetry": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.3.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )",
           "OpenTelemetry": "[1.17.0, )"
         }
       },
       "altinn.aspnet.healthchecks.probes": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.3.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )",
           "AspNetCore.HealthChecks.Uris": "[9.0.0, )"
         }
       },
       "altinn.aspnet.healthchecks.warmup": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.3.0, )"
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )"
         }
       },
       "AspNetCore.HealthChecks.Uris": {
@@ -202,9 +202,9 @@
       },
       "Microsoft.Extensions.TimeProvider.Testing": {
         "type": "Direct",
-        "requested": "[10.8.0, )",
-        "resolved": "10.8.0",
-        "contentHash": "xXcxGfXSO/8o7IfYK36r3eZTl9RMKAl5K6x3x6o/QQBolI0t8vsLIGmhc3HJBTd11u1uPLHz61VnOTSTmY7ZVA=="
+        "requested": "[10.9.0, )",
+        "resolved": "10.9.0",
+        "contentHash": "0If8xc915BgRpYmKB9tOOOprvHMt8Tue6kiD8ARgVf8Ok6PNUxkJScKT7QUp7+RllR4RN2DNACgaxioy9BJxeQ=="
       },
       "xunit.runner.visualstudio": {
         "type": "Direct",
@@ -360,21 +360,21 @@
       "altinn.aspnet.healthchecks.opentelemetry": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.3.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )",
           "OpenTelemetry": "[1.17.0, )"
         }
       },
       "altinn.aspnet.healthchecks.probes": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.3.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )",
           "AspNetCore.HealthChecks.Uris": "[9.0.0, )"
         }
       },
       "altinn.aspnet.healthchecks.warmup": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.3.0, )"
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )"
         }
       },
       "AspNetCore.HealthChecks.Uris": {
@@ -402,9 +402,9 @@
       },
       "Microsoft.Extensions.TimeProvider.Testing": {
         "type": "Direct",
-        "requested": "[10.8.0, )",
-        "resolved": "10.8.0",
-        "contentHash": "xXcxGfXSO/8o7IfYK36r3eZTl9RMKAl5K6x3x6o/QQBolI0t8vsLIGmhc3HJBTd11u1uPLHz61VnOTSTmY7ZVA=="
+        "requested": "[10.9.0, )",
+        "resolved": "10.9.0",
+        "contentHash": "0If8xc915BgRpYmKB9tOOOprvHMt8Tue6kiD8ARgVf8Ok6PNUxkJScKT7QUp7+RllR4RN2DNACgaxioy9BJxeQ=="
       },
       "xunit.runner.visualstudio": {
         "type": "Direct",
@@ -560,21 +560,21 @@
       "altinn.aspnet.healthchecks.opentelemetry": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.3.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )",
           "OpenTelemetry": "[1.17.0, )"
         }
       },
       "altinn.aspnet.healthchecks.probes": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.3.0, )",
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )",
           "AspNetCore.HealthChecks.Uris": "[9.0.0, )"
         }
       },
       "altinn.aspnet.healthchecks.warmup": {
         "type": "Project",
         "dependencies": {
-          "Altinn.AspNet.HealthChecks": "[0.3.0, )"
+          "Altinn.AspNet.HealthChecks": "[0.4.0, )"
         }
       },
       "AspNetCore.HealthChecks.Uris": {
