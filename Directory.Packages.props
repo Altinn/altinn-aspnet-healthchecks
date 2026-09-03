@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <PackageVersion Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
-    <PackageVersion Include="OpenTelemetry" Version="1.17.0" />
+    <PackageVersion Include="OpenTelemetry" Version="1.18.0" />
   </ItemGroup>
 
   <!-- Test and sample dependencies. Never shipped; updates here do not trigger a release. -->
