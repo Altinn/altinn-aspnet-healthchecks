@@ -4,15 +4,15 @@
     "net10.0": {
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
-        "requested": "[10.0.12, )",
-        "resolved": "10.0.12",
-        "contentHash": "bTHgbcjSrLxlqSasYRDU9BcJ3hDGoqIjtDY0soLNrndOWi3kxtOyddwUMaNZgtoI2Uf6y7ZQs2EuVj0c20B7mA=="
+        "requested": "[10.0.13, )",
+        "resolved": "10.0.13",
+        "contentHash": "8xzbDfEOWg5GRp5byA42Axr4TbockbxCvdHTYk27ZIdst79DO0CLBp/Zw5sduK2goRii7of4EeuTjG/yPH4tsg=="
       },
       "Microsoft.Extensions.TimeProvider.Testing": {
         "type": "Direct",
-        "requested": "[10.10.0, )",
-        "resolved": "10.10.0",
-        "contentHash": "8duZdxuO3Oo8tlyQXVq1drXee6GJC9DjUU97Pq3YaIqf92jrAHsWxbbRKwvjQI48Mer3IANwUKF0elqvHeY4Rw=="
+        "requested": "[10.11.0, )",
+        "resolved": "10.11.0",
+        "contentHash": "DTivKZ2Du0dJideTTa6vPj/eXKNRu+RxtjBX7NOOUXHBtHx1ehbE+lM+j3/5M3wU6BqzcZqEEyR4+FnPKs2rTA=="
       },
       "xunit.runner.visualstudio": {
         "type": "Direct",
@@ -196,15 +196,15 @@
     "net8.0": {
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
-        "requested": "[8.0.31, )",
-        "resolved": "8.0.31",
-        "contentHash": "k1tthAL1CxydDD9oxO1gLZJbovDfK6ydOrgnQ6T0mLr4BvdOLR4F9PbLjcm5k3Er3dyN2A/5eUaq/oOBcdHz+Q=="
+        "requested": "[8.0.32, )",
+        "resolved": "8.0.32",
+        "contentHash": "6MYbgxxio/RF2svX5LrK4bwqOo5QOFgu4TZ95i/mOgDW7owHHsi6zsEy/rFvunGF83mSkbJ6pK9zoujh2W23bw=="
       },
       "Microsoft.Extensions.TimeProvider.Testing": {
         "type": "Direct",
-        "requested": "[10.10.0, )",
-        "resolved": "10.10.0",
-        "contentHash": "8duZdxuO3Oo8tlyQXVq1drXee6GJC9DjUU97Pq3YaIqf92jrAHsWxbbRKwvjQI48Mer3IANwUKF0elqvHeY4Rw=="
+        "requested": "[10.11.0, )",
+        "resolved": "10.11.0",
+        "contentHash": "DTivKZ2Du0dJideTTa6vPj/eXKNRu+RxtjBX7NOOUXHBtHx1ehbE+lM+j3/5M3wU6BqzcZqEEyR4+FnPKs2rTA=="
       },
       "xunit.runner.visualstudio": {
         "type": "Direct",
@@ -396,15 +396,15 @@
     "net9.0": {
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
-        "requested": "[9.0.20, )",
-        "resolved": "9.0.20",
-        "contentHash": "dhm9XyhRX0rZqR3m8Uj1pL88xy+dSPKAlvuewE51YzYa7HHUXGp8IPKy3iBHswty8t86e1T1MKILkI6U7MWSzw=="
+        "requested": "[9.0.21, )",
+        "resolved": "9.0.21",
+        "contentHash": "V4YFORTHqP8dr5QqzlTKNKxWrmSdxtNwLYh/BWa2Okxe1YDAmQxPRVEPdowcM+KbGujoggJ2s009joG1SpPmOw=="
       },
       "Microsoft.Extensions.TimeProvider.Testing": {
         "type": "Direct",
-        "requested": "[10.10.0, )",
-        "resolved": "10.10.0",
-        "contentHash": "8duZdxuO3Oo8tlyQXVq1drXee6GJC9DjUU97Pq3YaIqf92jrAHsWxbbRKwvjQI48Mer3IANwUKF0elqvHeY4Rw=="
+        "requested": "[10.11.0, )",
+        "resolved": "10.11.0",
+        "contentHash": "DTivKZ2Du0dJideTTa6vPj/eXKNRu+RxtjBX7NOOUXHBtHx1ehbE+lM+j3/5M3wU6BqzcZqEEyR4+FnPKs2rTA=="
       },
       "xunit.runner.visualstudio": {
         "type": "Direct",
