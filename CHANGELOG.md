@@ -2,6 +2,16 @@
 
 All packages in this repository share one version and are released together.
 
+## [0.4.1](https://github.com/Altinn/altinn-aspnet-healthchecks/compare/v0.4.0...v0.4.1) (2026-10-29)
+
+
+### Bug fixes
+
+* **deps:** update dependency opentelemetry to 1.18.0 ([#18](https://github.com/Altinn/altinn-aspnet-healthchecks/issues/18)) ([2c56717](https://github.com/Altinn/altinn-aspnet-healthchecks/commit/2c56717ac3df507a22ca97aff08aad80226d6090))
+* **deps:** update dependency opentelemetry to 1.19.0 ([#24](https://github.com/Altinn/altinn-aspnet-healthchecks/issues/24)) ([901054e](https://github.com/Altinn/altinn-aspnet-healthchecks/commit/901054e15a7f877cbe8d713cf47a0ee659f3bd90))
+* **deps:** update dependency opentelemetry to 1.19.1 ([#26](https://github.com/Altinn/altinn-aspnet-healthchecks/issues/26)) ([15bdc0d](https://github.com/Altinn/altinn-aspnet-healthchecks/commit/15bdc0dd9308be4ea7a4c9abb83da27531e30038))
+* **deps:** update dependency opentelemetry to 1.20.1 ([#32](https://github.com/Altinn/altinn-aspnet-healthchecks/issues/32)) ([3a4f34a](https://github.com/Altinn/altinn-aspnet-healthchecks/commit/3a4f34acde6411d9e856757fe750a7d3d8fd5415))
+
 ## [0.4.0](https://github.com/Altinn/altinn-aspnet-healthchecks/compare/v0.3.0...v0.4.0) (2026-09-02)
 
 
