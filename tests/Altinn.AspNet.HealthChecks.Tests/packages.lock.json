@@ -4,9 +4,9 @@
     "net10.0": {
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
-        "requested": "[10.0.13, )",
-        "resolved": "10.0.13",
-        "contentHash": "8xzbDfEOWg5GRp5byA42Axr4TbockbxCvdHTYk27ZIdst79DO0CLBp/Zw5sduK2goRii7of4EeuTjG/yPH4tsg=="
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "u4AX1M5Uzmw7V3NCdJJO4ITwH0DDDufyzmVlksE4QguVd23Co8adaREMp2VahlRB5f/rmtaFYVJIA1iIFnchmQ=="
       },
       "Microsoft.Extensions.TimeProvider.Testing": {
         "type": "Direct",
@@ -196,9 +196,9 @@
     "net8.0": {
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
-        "requested": "[8.0.32, )",
-        "resolved": "8.0.32",
-        "contentHash": "6MYbgxxio/RF2svX5LrK4bwqOo5QOFgu4TZ95i/mOgDW7owHHsi6zsEy/rFvunGF83mSkbJ6pK9zoujh2W23bw=="
+        "requested": "[8.0.33, )",
+        "resolved": "8.0.33",
+        "contentHash": "kDD+zd5Xh6QpHgoHHNZU1nXBvboVxq6bqkf9ptNKDLAlu3j6snYomDzDKsUIC/yO2PwYahWfI8cpybHwPxA1aw=="
       },
       "Microsoft.Extensions.TimeProvider.Testing": {
         "type": "Direct",
@@ -396,9 +396,9 @@
     "net9.0": {
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
-        "requested": "[9.0.21, )",
-        "resolved": "9.0.21",
-        "contentHash": "V4YFORTHqP8dr5QqzlTKNKxWrmSdxtNwLYh/BWa2Okxe1YDAmQxPRVEPdowcM+KbGujoggJ2s009joG1SpPmOw=="
+        "requested": "[9.0.22, )",
+        "resolved": "9.0.22",
+        "contentHash": "CTKIoXPtM5itRjqUXvbtNOzgX4c1dS4wGpmu/ZwU2pDMY47L2KKB8JRl2wtSVLxbkc0mCSiRUBpeq6fpavtXXg=="
       },
       "Microsoft.Extensions.TimeProvider.Testing": {
         "type": "Direct",
